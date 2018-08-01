@@ -8,35 +8,35 @@ const axios = require('axios');
 // const db = mongoose.connection;
 // db.on('error', console.error.bind(console, 'connection error:'));
 // db.once('open', function() {
-// console.log(` we're connected!`);
-
-
-
-
-
-
-/* After connecting to the database in our app.js we need to define our Schema.
-Here are the lines you need to add to the app.js. */
-/* const assetSchema = new mongoose.Schema({
-  assetName: String,
-  assetAddress: String,
-  assetCapacity: Number,
-  assetKPIExample1: Number,
-  assetKPIExample2: Number
-}); */
-
-/* Once we have built our Schema, we need to create a model from it. I am going
-to call my model “DataInput”. Here is the line you will add next to create our
-model. */
-// const Asset = mongoose.model("Asset", assetSchema);
-
-});
+  // console.log(` we're connected!`);
+  
+  
+  
+  
+  
+  
+  /* After connecting to the database in our app.js we need to define our Schema.
+  Here are the lines you need to add to the app.js. */
+  /* const assetSchema = new mongoose.Schema({
+    assetName: String,
+    assetAddress: String,
+    assetCapacity: Number,
+    assetKPIExample1: Number,
+    assetKPIExample2: Number
+  }); */
+  
+  /* Once we have built our Schema, we need to create a model from it. I am going
+  to call my model “DataInput”. Here is the line you will add next to create our
+  model. */
+  // const Asset = mongoose.model("Asset", assetSchema);
+  
+// });
 
 /* We can access all of the asset documents through our Assets model. */
-Assets.find(function (err, assets) {
+/* Assets.find(function (err, assets) {
   if (err) return console.error(err);
   console.log(assets);
-})
+}) */
 // ************** End Database Config **********************
 
 
@@ -47,21 +47,17 @@ console.log('you. are. AWESOME!');
 // ingest data with axios 
 const ingestEnergy = async (iOp) => {
   try {
-    const adfasdfad = 'https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token'
 
-    const horizonUrl = 'http://192.168.32.124:6600/api/horizon';
-    const demoHorizonUrl = https://webapidemo.horizon.greenpowermonitor.com//swagger/ui/index
-    const baseGpmUrl = demoEppUrl;
-    const facilitiesURL = `${baseGpmUrl}/facilities`;
-    const variableIdURL = `${baseGpmUrl}/parametertovariable/deviceparameter`;
+    const facilitiesURL = `${process.env.BASE_GPM_URL}/facilities`;
+    const variableIdURL = `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`;
     const creds = { 'username': process.env.GPM_USERNAME, 'password': process.env.GPM_PASSWORD }
     const facilityIdArray = []; 
-
+    
     // a test for gitlens 2	
-    const authString = await getBearerString(creds);
+    const authString = await getBearerString(AUTH_URL, creds);
     console.log('authString = ', authString)
     // let bearerConfig = { headers: { 'Authorization': authString } }
-
+    
     // ********   1. get facility data	
     const facilityIdsResponse = await axios( facilitiesURL, { headers: { Authorization: authString} });
     
@@ -134,14 +130,12 @@ const ingestEnergy = async (iOp) => {
   }
 }
 
-async function getBearerString (gpmUrl, credsParam) {
-  const authURL = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
-  
+async function getBearerString (authUrlParam, credsParam) {
   // console.log('creds = ', credsParam)
   let getTokenPromise = {}
   try {
-    // console.log('credsParam = ', credsParam)
-    getTokenPromise = await axios.post( authURL, credsParam);
+    console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
+    getTokenPromise = await axios.post( authUrlParam, credsParam);
   }	catch (error) {
     console.error(error)
   }
@@ -163,10 +157,10 @@ async function getBearerString (gpmUrl, credsParam) {
    let variableIdURL;
    let facOrDevice;
    if (iOp === 'inverter') {
-     variableIdURL =  '${baseGpmUrl}/parametertovariable/deviceparameter';
+     variableIdURL =  `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`;
      facOrDevice = 'DeviceId';
    } else {
-     variableIdURL = '${baseGpmUrl}/parametertovariable/facilityparameter';
+     variableIdURL = `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`;
      facOrDevice = 'FacilityId';
    }
     const variableIdPromises = arr.map( async inverter => {
@@ -296,7 +290,7 @@ async function getBearerString (gpmUrl, credsParam) {
 
 // spits out array of objects  
  ingestEnergy('inverter');
-https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token
+// https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token
 
  // spits out array of objects that have variable ids
 //  ingestEnergy('plant');
