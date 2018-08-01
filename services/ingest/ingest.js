@@ -186,7 +186,6 @@ async function getBearerString (credsParam) {
   function getData(arr, authString) {
     //  console.log( 'Array input to callForVariables = ', arr);
     const dataListURL = 'http://192.168.32.124:6600/api/DataList'
-    let requestData = {};
     const Promises = arr.map( async variable => {
       try { 
         const variableIdResponse = await axios({
@@ -196,22 +195,21 @@ async function getBearerString (credsParam) {
           params: {
             datasourceId: variable.VariableId,
             startDate: 1529452800,
-            endDate: 1529539200,
+            endDate:   1529456000,
             aggregationType: 0,
             grouping: 'raw'
-          },
-          transformResponse: axios.defaults.transformResponse.concat((data, headers) => {
-            console.log('data in transformResponse = ', data, 'headers = ', headers) // this should now be JSON
-            data.FacilityId = variable.FacilityId;
-            data.DeviceId = variable.DeviceId;
-            data.Name = variable.Name;
-            data.Unit = variable.Unit;
-            data.VariableId = variable.VariableId;
-          })
+          }
         });
+        return (variableIdResponse)
         // TODO: take out? or build object, then return that object
-
-        if (variableIdResponse.data) return variableIdResponse.data;
+        let resultObj = { ...data, 
+          FacilityId: variable.FacilityId,
+          DeviceId: variable.DeviceId,
+          Name: variable.Name,
+          Unit: variable.Unit,
+          VariableId: variable.VariableId,
+        }
+        if (variableIdResponse.data) return resultObj;
         
       } catch (error) {
         if (error.response) {
