@@ -1,6 +1,27 @@
 #! /usr/bin/env node
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 const axios = require('axios');
+// ******** Database Config (will go in another file) ********
+const mongoose = require("mongoose");
+mongoose.Promise = global.Promise;
+mongoose.connect(process.env.COSMOSDB_URI);
+
+/* After connecting to the database in our app.js we need to define our Schema.
+Here are the lines you need to add to the app.js. */
+const assetSchema = new mongoose.Schema({
+  assetName: String,
+  assetAddress: String,
+  assetCapacity: Number,
+  assetKPIExample1: Number,
+  assetKPIExample2: Number
+});
+
+/* Once we have built our Schema, we need to create a model from it. I am going
+to call my model “DataInput”. Here is the line you will add next to create our
+mode. */
+const Asset = mongoose.model("Asset", nameSchema);
+// ************** End Database Config **********************
+
 
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
