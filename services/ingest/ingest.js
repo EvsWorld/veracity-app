@@ -5,6 +5,15 @@ const axios = require('axios');
 // const mongoose = require("mongoose");
 // mongoose.Promise = global.Promise;
 // mongoose.connect(process.env.COSMOSDB_URI);
+// const db = mongoose.connection;
+// db.on('error', console.error.bind(console, 'connection error:'));
+// db.once('open', function() {
+// console.log(` we're connected!`);
+
+
+
+
+
 
 /* After connecting to the database in our app.js we need to define our Schema.
 Here are the lines you need to add to the app.js. */
@@ -19,7 +28,15 @@ Here are the lines you need to add to the app.js. */
 /* Once we have built our Schema, we need to create a model from it. I am going
 to call my model “DataInput”. Here is the line you will add next to create our
 model. */
-// const Asset = mongoose.model("Asset", nameSchema);
+// const Asset = mongoose.model("Asset", assetSchema);
+
+});
+
+/* We can access all of the asset documents through our Assets model. */
+Assets.find(function (err, assets) {
+  if (err) return console.error(err);
+  console.log(assets);
+})
 // ************** End Database Config **********************
 
 
@@ -30,8 +47,13 @@ console.log('you. are. AWESOME!');
 // ingest data with axios 
 const ingestEnergy = async (iOp) => {
   try {
-    const facilitiesURL = 'http://192.168.32.124:6600/api/horizon/facilities';
-    const variableIdURL = 'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter';
+    const adfasdfad = 'https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token'
+
+    const horizonUrl = 'http://192.168.32.124:6600/api/horizon';
+    const demoHorizonUrl = https://webapidemo.horizon.greenpowermonitor.com//swagger/ui/index
+    const baseGpmUrl = demoEppUrl;
+    const facilitiesURL = `${baseGpmUrl}/facilities`;
+    const variableIdURL = `${baseGpmUrl}/parametertovariable/deviceparameter`;
     const creds = { 'username': process.env.GPM_USERNAME, 'password': process.env.GPM_PASSWORD }
     const facilityIdArray = []; 
 
@@ -51,7 +73,7 @@ const ingestEnergy = async (iOp) => {
   
     // ********   2.  Get inverter information for each facility
     const promises = facilityIdArray.map( async facility => {
-      const devicesByTypeInverterURL = `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
+      const devicesByTypeInverterURL = `${baseGpmUrl}/facilities/${facility}/devices/by-type/INVERTER`;
       const response = await axios( devicesByTypeInverterURL, { headers: { 'Authorization': authString} } );
       if (response.data) return response.data // array of inverters
     });
@@ -112,8 +134,9 @@ const ingestEnergy = async (iOp) => {
   }
 }
 
-async function getBearerString (credsParam) {
+async function getBearerString (gpmUrl, credsParam) {
   const authURL = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
+  
   // console.log('creds = ', credsParam)
   let getTokenPromise = {}
   try {
@@ -137,14 +160,20 @@ async function getBearerString (credsParam) {
    if (!['plant','inverter'].includes(iOp)) {
      console.error('You\'re using callForVariables wrong! It takes plant or string');
    }
-  const variableIdURL = (iOp === 'inverter') ?
-   'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
-   'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
-  let requestData = {};
-  const variableIdPromises = arr.map( async inverter => {
-    try { 
+   let variableIdURL;
+   let facOrDevice;
+   if (iOp === 'inverter') {
+     variableIdURL =  '${baseGpmUrl}/parametertovariable/deviceparameter';
+     facOrDevice = 'DeviceId';
+   } else {
+     variableIdURL = '${baseGpmUrl}/parametertovariable/facilityparameter';
+     facOrDevice = 'FacilityId';
+   }
+    const variableIdPromises = arr.map( async inverter => {
+      try { 
+        let requestData = {};
       requestData = {
-        'DeviceId':  inverter.DeviceId,
+        [facOrDevice]:  inverter[facOrDevice],
         'ParameterId': inverter.ParameterId
       }
       const variableIdResponse = await axios({
@@ -185,11 +214,11 @@ async function getBearerString (credsParam) {
         console.log('rawValues', rawValues)
         let values = rawValues.filter(rawVal => rawVal)	
                               .map( val => ( {
-                                  FacilityId: val.Key.FacilityId,
-                                  DeviceId: val.Key.DeviceId,
-                                  VariableId: val.Key.VariableId,
-                                  Name: val.Name,
-                                  Unit: val.Unit
+                                  FacilityId: val.Key.FacilityId ? val.Key.FacilityId : null,
+                                  DeviceId: val.Key.DeviceId ? val.Key.DeviceId : null,
+                                  VariableId: val.Key.VariableId ? val.Key.Variable : null,
+                                  Name: val.Name ? val.Name : null,
+                                  Unit: val.Unit ? val.Unit : null
                                 } )
                               );	
         console.log(`The Variable ids for ${iOp} = `, values)
@@ -265,8 +294,9 @@ async function getBearerString (credsParam) {
       }); 
   }
 
-// spits out array of objects that have variable ids
+// spits out array of objects  
  ingestEnergy('inverter');
+https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token
 
  // spits out array of objects that have variable ids
 //  ingestEnergy('plant');
