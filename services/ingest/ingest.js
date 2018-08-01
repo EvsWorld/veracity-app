@@ -2,36 +2,32 @@
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 const axios = require('axios');
 // ******** Database Config (will go in another file) ********
-const mongoose = require("mongoose");
-mongoose.Promise = global.Promise;
-mongoose.connect(process.env.COSMOSDB_URI);
+// const mongoose = require("mongoose");
+// mongoose.Promise = global.Promise;
+// mongoose.connect(process.env.COSMOSDB_URI);
 
 /* After connecting to the database in our app.js we need to define our Schema.
 Here are the lines you need to add to the app.js. */
-const assetSchema = new mongoose.Schema({
+/* const assetSchema = new mongoose.Schema({
   assetName: String,
   assetAddress: String,
   assetCapacity: Number,
   assetKPIExample1: Number,
   assetKPIExample2: Number
-});
+}); */
 
 /* Once we have built our Schema, we need to create a model from it. I am going
 to call my model “DataInput”. Here is the line you will add next to create our
-mode. */
-const Asset = mongoose.model("Asset", nameSchema);
+model. */
+// const Asset = mongoose.model("Asset", nameSchema);
 // ************** End Database Config **********************
 
 
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
 console.log('you. are. AWESOME!');  
-const queryString = require('query-string');
 
 // ingest data with axios 
-
-
-
 const ingestEnergy = async (iOp) => {
   try {
     const facilitiesURL = 'http://192.168.32.124:6600/api/horizon/facilities';
@@ -216,21 +212,27 @@ async function getBearerString (credsParam) {
           params: {
             datasourceId: variable.VariableId,
             startDate: 1529452800,
-            endDate:   1529456000,
+            endDate:   1529539200,
             aggregationType: 0,
             grouping: 'raw'
           }
         });
-        return (variableIdResponse)
-        // TODO: take out? or build object, then return that object
-        let resultObj = { ...data, 
+        variableIdResponse.data.forEach( dp => {
+          delete dp.DataSourceId;
+          return dp;
+        })
+        // return variableIdResponse
+        // write each to database when they come back, and then save facility Id
+        // and such in the callback of the Promise.all. 
+        let resultObj = {  
           FacilityId: variable.FacilityId,
           DeviceId: variable.DeviceId,
           Name: variable.Name,
           Unit: variable.Unit,
           VariableId: variable.VariableId,
+          data: variableIdResponse.data
         }
-        if (variableIdResponse.data) return resultObj;
+        if ( variableIdResponse.data ) return resultObj;
         
       } catch (error) {
         if (error.response) {
