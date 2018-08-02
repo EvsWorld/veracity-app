@@ -109,22 +109,28 @@ const ingestEnergy = async (iOp) => {
       return inverter.Parameters.length > 0
     });
     // console.log('invertersArrayFiltered = ', invertersArrayFiltered)
-
+    
+    // TODO: find a way to bring along all of these properties to the next array
+    // of object with the variableids
     const invertersArray = invertersArrayFiltered.map((inverter, indexO) => { 
-      // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ', indexO);
+      // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
+      // indexO);
+      let peakPowerValue = inverter.Descriptions.filter( param => param.Name == 'Peak Power');
+      let powerValue = inverter.Parameters.filter( param => param.Name == 'Power');
       let tempObj = {}
-      // filter this inverter.Parameters array, return resulting object
-      let newObj = inverter.Parameters.filter( param => param.Name == 'Energy');
-        // add preperties you need from the inverter level, then return to map
-        // the whole object; this will build the 'invertersArray'
-        tempObj.DeviceId =  newObj[0].Key.DeviceId;
-        tempObj.ParameterId =  newObj[0].Key.ParameterId;
-        tempObj.Name =  newObj[0].Name;
-        tempObj.ParameterSubType =  newObj[0].ParameterSubType;
-        tempObj.ParameterType =  newObj[0].Insolation;
-        tempObj.Units =  newObj[0].Units;
+        // add properties you need from the inverter level, then return that
+        // object to map the whole object; this will build the 'invertersArray'
+        tempObj.InverterLevelName =  powerValue[0].Name;
         tempObj.FacilityId = inverter.FacilityId;
         tempObj.Id = inverter.Id;
+        tempObj.PeakPower = peakPowerValue[0].value;
+        tempObj.DeviceId = powerValue[0].Key.DeviceId;
+        tempObj.ParameterId = powerValue[0].Key.ParameterId;
+        tempObj.parametersLeverlName = powerValue[0].Key.Name;
+        tempObj.ParameterSubType = powerValue[0].Key.ParameterSubType;
+        tempObj.Insolation = powerValue[0].Key.Insolation;
+        tempObj.Units = powerValue[0].Key.Units;
+        tempObj.Stooge = 'TheStooge';
        return tempObj;
       });
 
@@ -168,9 +174,10 @@ async function getBearerString (authUrlParam, credsParam) {
   
 };
 
-// takes array of object with parameters and info for elements, and returns array of variables
+// takes array of object with parameters and info for elements, and returns
+// array of objects with variables
  async function callForVariables(arr, authString, iOp) {
-  //  console.log( 'Array input to callForVariables = ', arr);
+   console.log( 'Array input to callForVariables = ', arr);
    if (!['plant','inverter'].includes(iOp)) {
      console.error('You\'re using callForVariables wrong! It takes plant or string');
    }
@@ -204,20 +211,22 @@ async function getBearerString (authUrlParam, credsParam) {
         data: requestData,  
         headers: { 'Authorization': authString }
       });
-        /*       // add returned variable to object, then return
-        let retObj = inverter;
-        retObj.variableName = variableIdResponse.data;
-        if (variableIdResponse.data) return retObj;
-        */
-        // console.log( 'response = ', variableIdResponse)
-        if (variableIdResponse.data) return variableIdResponse.data;
+      let respObj = {}; 
+      // if (variableIdResponse.data) {
+      //   respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
+      //   respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
+      //   respObj.VariableId = variableIdResponse.data.Key.VariableId;
+      //   respObj.Name = variableIdResponse.data.Name;
+      //   respObj.Unit = variableIdResponse.data.Unit;
+      // }
+      if (variableIdResponse.data) return variableIdResponse.data;
       
     } catch (error) {
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.log('\nError, request made, but server responded with ...', error.response.data);
-        console.log('\nError.response.status = ', errork.response.status);
+        console.log('\nError.response.status = ', error.response.status);
         console.log('\nError.response.headers = ', error.response.headers);
       } else if (error.request) {
         // The request was made but no response was received `error.request` is
@@ -235,14 +244,14 @@ async function getBearerString (authUrlParam, credsParam) {
       .then((rawValues) => {
         console.log('rawValues', rawValues)
         let values = rawValues.filter(rawVal => rawVal)	
-                              .map( val => ( {
-                                  FacilityId: val.Key.FacilityId,
-                                  DeviceId: val.Key.DeviceId,
-                                  VariableId: val.Key.VariableId,
-                                  Name: val.Name,
-                                  Unit: val.Unit
-                                } )
-                              );	
+                              // .map( val => ( {
+                              //     FacilityId: val.Key.FacilityId,
+                              //     DeviceId: val.Key.DeviceId,
+                              //     VariableId: val.Key.VariableId,
+                              //     Name: val.Name,
+                              //     Unit: val.Unit
+                              //   } )
+                              // );	
         // console.log(`The Variable ids for ${iOp} = `, values)
         return values;
       }, function() {
