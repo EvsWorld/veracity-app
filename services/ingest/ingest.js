@@ -1,4 +1,24 @@
 #! /usr/bin/env node
+
+// logger example
+
+var log4js = require('log4js');
+log4js.configure({
+  appenders: { cheese: { type: 'file', filename: 'cheese.log' } },
+  categories: { default: { appenders: ['cheese'], level: 'error' } }
+});
+
+const logger = log4js.getLogger('cheese');
+logger.trace('Entering cheese testing');
+logger.debug('Got cheese.');
+logger.info('Cheese is Gouda.');
+logger.warn('Cheese is quite smelly.');
+logger.error('Cheese is too ripe!');
+logger.fatal('Cheese was breeding ground for listeria.');
+
+console.log('this is from console.log');
+process.stdout.write('this is from process.stdout.write\n')
+
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 const axios = require('axios');
 // ******** Database Config (will go in another file) ********
@@ -49,14 +69,15 @@ console.info(`${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`)
 // ingest data with axios 
 const ingestEnergy = async (iOp) => {
   try {
-
+    
     const facilitiesURL = `${process.env.BASE_GPM_URL}/facilities`;
-    const variableIdURL = `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`;
     const creds = { 'username': process.env.GPM_USERNAME, 'password': process.env.GPM_PASSWORD }
+    const authUrl = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
     const facilityIdArray = []; 
     
     // a test for gitlens 2	
-    const authString = await getBearerString(process.env.AUTH_URL, creds);
+    // const authString = await getBearerString(process.env.AUTH_URL, creds);
+    const authString = await getBearerString(authUrl, creds);
     console.log('authString = ', authString)
     // let bearerConfig = { headers: { 'Authorization': authString } }
     
@@ -71,7 +92,8 @@ const ingestEnergy = async (iOp) => {
   
     // ********   2.  Get inverter information for each facility
     const promises = facilityIdArray.map( async facility => {
-      const devicesByTypeInverterURL = `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
+      // const devicesByTypeInverterURL = `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
+      const devicesByTypeInverterURL = `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
       const response = await axios( devicesByTypeInverterURL, { headers: { 'Authorization': authString} } );
       if (response.data) return response.data // array of inverters
     });
@@ -108,7 +130,7 @@ const ingestEnergy = async (iOp) => {
 
       // variablesArray become an array of objects which have a VariableId key
       // in them
-      let variablesArray = await callForVariables(invertersArray, authString, variableIdURL, iOp)
+      let variablesArray = await callForVariables(invertersArray, authString, iOp)
       getData(variablesArray, authString); // getData should pull data according to variableId
 
   } catch (error) {
@@ -146,35 +168,39 @@ async function getBearerString (authUrlParam, credsParam) {
   
 };
 
-// function getDeviceVariables = callForVariables(x, y, z)
-
-// function getDeviceParametersForIrradiance callForVariables(x, y, z)
-
 // takes array of object with parameters and info for elements, and returns array of variables
- async function callForVariables(arr, authString, varUrlParam, iOp) {
+ async function callForVariables(arr, authString, iOp) {
   //  console.log( 'Array input to callForVariables = ', arr);
    if (!['plant','inverter'].includes(iOp)) {
      console.error('You\'re using callForVariables wrong! It takes plant or string');
    }
-   let variableIdURL;
+   let varUrlParam;
    let facOrDevice;
    if (iOp === 'inverter') {
-     variableIdURL =  `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`;
-     facOrDevice = 'DeviceId';
+    // varUrlParam =
+    // `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`;
+    varUrlParam='http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter';
+    facOrDevice = 'DeviceId';
    } else {
-     variableIdURL = `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`;
-     facOrDevice = 'FacilityId';
+    //  varUrlParam = `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`;
+    varUrlParam =  'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
+    facOrDevice = 'FacilityId';
    }
+   // TODO: replace the above if statement with something like this:
+    /*    const [ legWear, coat ] = (weather === "good") 
+    ? [ "shorts", false ]
+    : [ "jeans",  true  ] */
+   let requestData = {};
     const variableIdPromises = arr.map( async inverter => {
       try { 
-        let requestData = {};
       requestData = {
-        [facOrDevice]:  inverter[facOrDevice],
+        // [facOrDevice]:  inverter[facOrDevice],
+        'DeviceId':  inverter.DeviceId,
         'ParameterId': inverter.ParameterId
       }
       const variableIdResponse = await axios({
         method: 'post',
-        url: variableIdURL,
+        url: varUrlParam,
         data: requestData,  
         headers: { 'Authorization': authString }
       });
@@ -191,7 +217,7 @@ async function getBearerString (authUrlParam, credsParam) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.log('\nError, request made, but server responded with ...', error.response.data);
-        console.log('\nError.response.status = ', error.response.status);
+        console.log('\nError.response.status = ', errork.response.status);
         console.log('\nError.response.headers = ', error.response.headers);
       } else if (error.request) {
         // The request was made but no response was received `error.request` is
@@ -210,14 +236,14 @@ async function getBearerString (authUrlParam, credsParam) {
         console.log('rawValues', rawValues)
         let values = rawValues.filter(rawVal => rawVal)	
                               .map( val => ( {
-                                  FacilityId: val.Key.FacilityId ? val.Key.FacilityId : null,
-                                  DeviceId: val.Key.DeviceId ? val.Key.DeviceId : null,
-                                  VariableId: val.Key.VariableId ? val.Key.Variable : null,
-                                  Name: val.Name ? val.Name : null,
-                                  Unit: val.Unit ? val.Unit : null
+                                  FacilityId: val.Key.FacilityId,
+                                  DeviceId: val.Key.DeviceId,
+                                  VariableId: val.Key.VariableId,
+                                  Name: val.Name,
+                                  Unit: val.Unit
                                 } )
                               );	
-        console.log(`The Variable ids for ${iOp} = `, values)
+        // console.log(`The Variable ids for ${iOp} = `, values)
         return values;
       }, function() {
         console.log('stuff failed')
@@ -283,7 +309,9 @@ async function getBearerString (authUrlParam, credsParam) {
       .then((rawValues) => {
         console.log('rawValues', rawValues)
         let values = rawValues.filter( val => val);	
-        console.log('Array of energy datapoints = ', values)
+        // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
+        console.log('Array of energy datapoints = ', values);
+        console.log('dummy log')
         return values;
       }, function() {
         console.log('stuff failed')

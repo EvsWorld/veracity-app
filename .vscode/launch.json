@@ -41,7 +41,6 @@
                 "${workspaceFolder}/node_modules/**/*.js",
                 "${workspaceFolder}/lib/**/*.js"
               ]
-             
         },
         {
             "type": "node",
@@ -55,6 +54,32 @@
                 "${workspaceFolder}/instatrust-api/node_modules/**/*.js",
                 "${workspaceFolder}/instatrust-api/lib/**/*.js"
               ]
+        },
+        {
+            "type": "node",
+            "request": "attach",
+            "name": "Attach to app.js",
+            "port": "5858"
+        },
+        {
+            "name": "Ingest & output logs",
+            "type": "node",
+            "program": "${workspaceRoot}/services/ingest/ingest.js",
+            "stopOnEntry": false,
+            "args": [],
+            "cwd": "${workspaceRoot}/",
+            "runtimeExecutable": null,
+            "runtimeArgs": [
+                "--nolazy"
+            ],
+            "env": {
+                "NODE_ENV": "development",
+                "LOGSQL": "false",
+                "USE_COMPRESSION": "false",
+            },
+            "sourceMaps": false,
+            "console": "integratedTerminal",
+            "outputCapture": "std"
         }
     ]
 }
