@@ -43,7 +43,9 @@ const axios = require('axios');
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
 console.log('you. are. AWESOME!');  
-
+console.info('AUTH_URL = ', process.env.AUTH_URL)
+console.info('BASE_GPM_URL = ', process.env.BASE_GPM_URL)
+console.info(`${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`)
 // ingest data with axios 
 const ingestEnergy = async (iOp) => {
   try {
@@ -54,7 +56,7 @@ const ingestEnergy = async (iOp) => {
     const facilityIdArray = []; 
     
     // a test for gitlens 2	
-    const authString = await getBearerString(AUTH_URL, creds);
+    const authString = await getBearerString(process.env.AUTH_URL, creds);
     console.log('authString = ', authString)
     // let bearerConfig = { headers: { 'Authorization': authString } }
     
@@ -69,7 +71,7 @@ const ingestEnergy = async (iOp) => {
   
     // ********   2.  Get inverter information for each facility
     const promises = facilityIdArray.map( async facility => {
-      const devicesByTypeInverterURL = `${baseGpmUrl}/facilities/${facility}/devices/by-type/INVERTER`;
+      const devicesByTypeInverterURL = `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
       const response = await axios( devicesByTypeInverterURL, { headers: { 'Authorization': authString} } );
       if (response.data) return response.data // array of inverters
     });
