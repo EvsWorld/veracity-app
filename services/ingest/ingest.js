@@ -167,11 +167,11 @@ const ingestEnergy = async (iOp) => {
 		 console.error('You\'re using callForVariables wrong! It takes plant or string');
 	 }
 	 const varUrlParam = (iOp === 'inverter') ?
-  //  `${process.env.BASE_GPM_URL}/api/horizon/parametertovariable/deviceparameter` :
+  //  `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter` :
   'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
-	// `${process.env.BASE_GPM_URL}/api/horizon/parametertovariable/facilityparameter`
+	  // `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`
  'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
-
+	 console.log('varUrlParam = ', varUrlParam);
 		const variableIdPromises = arr.map( async inverter => {
 			try { 
 			const variableIdResponse = await axios({
@@ -218,14 +218,6 @@ const ingestEnergy = async (iOp) => {
 			.then((rawValues) => {
 				console.log('rawValues', rawValues)
 				let values = rawValues.filter(rawVal => rawVal)	
-															// .map( val => ( {
-															//     FacilityId: val.Key.FacilityId,
-															//     DeviceId: val.Key.DeviceId,
-															//     VariableId: val.Key.VariableId,
-															//     Name: val.Name,
-															//     Unit: val.Unit
-															//   } )
-															// );	
 				// console.log(`The Variable ids for ${iOp} = `, values)
 				return values;
 			}, function() {
