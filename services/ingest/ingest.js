@@ -115,21 +115,20 @@ const ingestEnergy = async (iOp) => {
     const invertersArray = invertersArrayFiltered.map((inverter, indexO) => { 
       // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
       // indexO);
-      let peakPowerValue = inverter.Descriptions.filter( param => param.Name == 'Peak Power');
-      let powerValue = inverter.Parameters.filter( param => param.Name == 'Power');
+      let peakPowerValue = inverter.Descriptions.filter( param => param.Name == 'Peak Power')[0].Value;
+      let powerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
       let tempObj = {}
         // add properties you need from the inverter level, then return that
         // object to map the whole object; this will build the 'invertersArray'
-        tempObj.InverterLevelName =  powerValue[0].Name;
-        tempObj.FacilityId = inverter.FacilityId;
-        tempObj.Id = inverter.Id;
-        tempObj.PeakPower = peakPowerValue[0].value;
-        tempObj.DeviceId = powerValue[0].Key.DeviceId;
-        tempObj.ParameterId = powerValue[0].Key.ParameterId;
-        tempObj.parametersLeverlName = powerValue[0].Key.Name;
-        tempObj.ParameterSubType = powerValue[0].Key.ParameterSubType;
-        tempObj.Insolation = powerValue[0].Key.Insolation;
-        tempObj.Units = powerValue[0].Key.Units;
+        tempObj.InverterLevelName = inverter.Name;
+        tempObj.InverterLevelFacilityId = inverter.FacilityId;
+        tempObj.InverterLevelId = inverter.Id;
+        tempObj.PeakPower = peakPowerValue;
+        tempObj.DeviceId = powerObj.Key.DeviceId;
+        tempObj.ParameterId = powerObj.Key.ParameterId;
+        tempObj.parametersLevelName = powerObj.Name;
+        tempObj.ParameterType = powerObj.ParameterType;
+        tempObj.Units = powerObj.Units;
         tempObj.Stooge = 'TheStooge';
        return tempObj;
       });
@@ -212,13 +211,13 @@ async function getBearerString (authUrlParam, credsParam) {
         headers: { 'Authorization': authString }
       });
       let respObj = {}; 
-      // if (variableIdResponse.data) {
-      //   respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
-      //   respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
-      //   respObj.VariableId = variableIdResponse.data.Key.VariableId;
-      //   respObj.Name = variableIdResponse.data.Name;
-      //   respObj.Unit = variableIdResponse.data.Unit;
-      // }
+      if (variableIdResponse.data) {
+        respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
+        respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
+        respObj.VariableId = variableIdResponse.data.Key.VariableId;
+        respObj.Name = variableIdResponse.data.Name;
+        respObj.Unit = variableIdResponse.data.Unit;
+      }
       if (variableIdResponse.data) return variableIdResponse.data;
       
     } catch (error) {
