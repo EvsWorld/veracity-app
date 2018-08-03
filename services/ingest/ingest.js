@@ -126,7 +126,7 @@ const ingestEnergy = async (iOp) => {
 				tempObj.PeakPower = peakPowerObj.Value;
 				tempObj.DeviceId = powerObj.Key.DeviceId;
 				tempObj.ParameterId = powerObj.Key.ParameterId;
-				tempObj.parametersLevelName = powerObj.Name;
+				tempObj.ParametersLevelName = powerObj.Name;
 				tempObj.ParameterType = powerObj.ParameterType;
 				tempObj.Units = powerObj.Units;
 				tempObj.Stooge = 'TheStooge';
@@ -186,7 +186,7 @@ const ingestEnergy = async (iOp) => {
 				respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
 				respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
 				respObj.VariableId = variableIdResponse.data.Key.VariableId;
-				respObj.Name = inverter.InverterLevelName;
+				respObj.Name = inverter.ParametersLevelName;
 				respObj.Unit = variableIdResponse.data.Unit;
 				respObj.ParameterId = inverter.ParameterId;
 				respObj.PeakPower = inverter.PeakPower;
