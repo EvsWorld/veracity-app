@@ -13,7 +13,7 @@ const { authConfig } = require('./config.js');
 /*  ExpressSession is used to store session info in memory so the user does not 
 have to re-authenticate on every request. */
 const expressSession = require('express-session');
-const dbConnection = require('./db');
+//const dbConnection = require('./db');
 const MongoStore = require('connect-mongo')(expressSession);
 
 const cors = require('cors');
@@ -390,30 +390,7 @@ app.get('/api1/heroes', (req, res) => {
     .catch(err => {
       res.status(500).send(err);
     });
-}
-app.get('*', (req, res, next) => {
-  // res.sendFile('/public/index.html');
-  const err = new Error(`Four OHH four! req.originalUrl = ${req.originalUrl}\n`);
-  err.status = 404;
-  next(err);
 });
-
-// express-winston errorLogger makes sense AFTER the router.
-app.use(expressWinston.errorLogger({
-  transports: [
-    new winston.transports.Console({
-      json: true,
-      colorize: true
-    })
-  ]
-}));
-
-
-// -----------------------------------------------------------------------------
-// Finally start our server by calling the start function from server.js
-// -----------------------------------------------------------------------------
-start();
-
 
 
 
@@ -907,6 +884,29 @@ longitude
 
 
 
+
+app.get('*', (req, res, next) => {
+  // res.sendFile('/public/index.html');
+  const err = new Error(`Four OHH four! req.originalUrl = ${req.originalUrl}\n`);
+  err.status = 404;
+  next(err);
+});
+
+// express-winston errorLogger makes sense AFTER the router.
+app.use(expressWinston.errorLogger({
+  transports: [
+    new winston.transports.Console({
+      json: true,
+      colorize: true
+    })
+  ]
+}));
+
+
+// -----------------------------------------------------------------------------
+// Finally start our server by calling the start function from server.js
+// -----------------------------------------------------------------------------
+start();
 
 
 

@@ -68,7 +68,7 @@
     "url": "https://github.com/veracity/generator-veracity/issues"
   },
   "scripts": {
-    "dev": "PORT=3001 nodemon --inspect=0.0.0.0:9229 start.js",
+    "dev": "nodemon --inspect=0.0.0.0:9229 start.js",
     "buildFrontAndDev": "cd ../instatrust-test-front && yarn build && cd ../instatrust-api && nodemon --inspect start",
     "devcode": "nodemon --inspect start.js"
   }

@@ -23,7 +23,7 @@ class Heroes extends Component {
   }
 
   componentDidMount() {
-    api.get().then(json => this.setState({ heroes: json }));
+    //api.get().then(json => this.setState({ heroes: json }));
     
     api.getAssets().then(json => console.log(json))
   }

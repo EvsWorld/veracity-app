@@ -45,6 +45,7 @@ module.exports = {
 /* Mongo Database
 * - this is where we set up our connection to the mongo database
 */
+
 const mongoose = require('mongoose');
 mongoose.Promise = global.Promise;
 let MONGO_URL;
