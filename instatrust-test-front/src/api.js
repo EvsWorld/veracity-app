@@ -12,6 +12,17 @@ const heroService = {
     });
   },
 
+  getAssets(){
+    return new Promise((resolve, reject) => {
+      fetch(`${baseAPI}/allAssets`)
+        .then(response => response.json())
+        .then(json => resolve(json))
+        .catch(err => {
+          reject(err);
+        });
+    });
+  },
+
   create(hero) {
     return new Promise((resolve, reject) => {
       fetch(`${baseAPI}/hero`, {
