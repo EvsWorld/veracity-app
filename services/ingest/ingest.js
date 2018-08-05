@@ -89,14 +89,24 @@ const ingestEnergy = async (iOp) => {
 			if (facility && facility.Parameters[0]) {
 			facilityIdArray.push(facility.Parameters[0].Key.FacilityId) ;
 		}});
-	
-		// ********   2.  Get inverter information for each facility
-
-
 
 		
-			let invertersArray = await getInverterInfo(facilityIdArray, authString, iOp); 
-			/* variablesArray become an array of objects which have a VariableId key
+		let invertersArray = await getInverterInfo(facilityIdArray, authString, iOp);
+		
+		// TODO: 
+		/*  
+		// save power data to db
+		const powerVariableIds =  callForVariables(invertersArray, optionForPower) 
+		getData(powerVariables)	
+
+		// save iradiance data to db
+		const irradianceVariableIds = callForVariables(invertersArray, optionForIrradiance)
+		getData(irradianceVariablesIds);
+		
+		
+		*/
+
+		/* variablesArray become an array of objects which have a VariableId key
 			in them */
 			/* TODO: make variablesArray become an array of objects which have a
 			powerVariableId key and a irradianceVariableId key in them */
@@ -261,19 +271,8 @@ const ingestEnergy = async (iOp) => {
 			}); 
   }
   
-  async function getBearerString (authUrlParam, credsParam) {
-    // console.log('creds = ', credsParam)
-    let getTokenPromise = {}
-    try {
-      console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
-      getTokenPromise = await axios.post( authUrlParam, credsParam);
-    }	catch (error) {
-      console.error(error)
-    }
-    // console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
-    return 'Bearer '.concat(getTokenPromise.data.AccessToken);
-	};
 	
+	// make array of device info, for all facilities
 	async function getInverterInfo (facilityIdArray, authStringParam) {
 		const promises = facilityIdArray.map( async facility => {
 			// const devicesByTypeInverterURL = `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
@@ -281,12 +280,12 @@ const ingestEnergy = async (iOp) => {
 			const response = await axios( devicesByTypeInverterURL, { headers: { 'Authorization': authStringParam} } );
 			if (response.data) return response.data // array of inverters
 		});
-
+		
 		// wait until all promises resolve
 		// array of arrays. each child array is a list of inverters for a facility  
 		const invertersArrayNotFlat = await Promise.all(promises)
 		let invertersArrayAndZeros = [].concat.apply([],invertersArrayNotFlat);
-
+		
 		// filter out facilitites that don't have inverters in them
 		const invertersArrayFiltered = invertersArrayAndZeros.filter( inverter =>  {
 			// console.log( 'inverter.Parameters.length = ', inverter.Parameters.length);
@@ -302,27 +301,27 @@ const ingestEnergy = async (iOp) => {
 			let peakPowerObj = inverter.Descriptions.filter( param => param.Name == 'Peak Power')[0];
 			let powerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
 			let tempObj = {}
-				// add properties you need from the inverter level, then return that
-				// object to map the whole object; this will build the 'invertersArray'
-				tempObj.InverterLevelName = peakPowerObj.Name;
-				tempObj.InverterLevelFacilityId = inverter.FacilityId;
-				tempObj.InverterLevelId = inverter.Id;
-				tempObj.PeakPower = peakPowerObj.Value;
-				tempObj.DeviceId = powerObj.Key.DeviceId;
+			// add properties you need from the inverter level, then return that
+			// object to map the whole object; this will build the 'invertersArray'
+			tempObj.InverterLevelName = peakPowerObj.Name;
+			tempObj.InverterLevelFacilityId = inverter.FacilityId;
+			tempObj.InverterLevelId = inverter.Id;
+			tempObj.PeakPower = peakPowerObj.Value;
+			tempObj.DeviceId = powerObj.Key.DeviceId;
 				tempObj.ParameterId = powerObj.Key.ParameterId;
 				tempObj.ParametersLevelName = powerObj.Name;
 				tempObj.ParameterType = powerObj.ParameterType;
 				tempObj.Units = powerObj.Units;
 				tempObj.Stooge = 'TheStooge';
-			 return tempObj;
+				return tempObj;
 			});
-/* const invertersArrayIrradiance = invertersArrayFiltered.map((inverter, indexO) => { 
-			// console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
-			// indexO);
+			/* const invertersArrayIrradiance = invertersArrayFiltered.map((inverter, indexO) => { 
+				// console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
+				// indexO);
 			let peakPowerObj = inverter.Descriptions.filter( param => param.Name == 'Peak Power')[0];
 			let powerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
 			let tempObj = {}
-				// add properties you need from the inverter level, then return that
+			// add properties you need from the inverter level, then return that
 				// object to map the whole object; this will build the 'invertersArray'
 				tempObj.InverterLevelName = peakPowerObj.Name;
 				tempObj.InverterLevelFacilityId = inverter.FacilityId;
@@ -334,14 +333,27 @@ const ingestEnergy = async (iOp) => {
 				tempObj.ParameterType = powerObj.ParameterType;
 				tempObj.Units = powerObj.Units;
 				tempObj.Stooge = 'TheStooge';
-			 return tempObj;
+				return tempObj;
 			}); */
 			return invertersArray;
 	}
+	
+	async function getBearerString (authUrlParam, credsParam) {
+		// console.log('creds = ', credsParam)
+		let getTokenPromise = {}
+		try {
+			console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
+			getTokenPromise = await axios.post( authUrlParam, credsParam);
+		}	catch (error) {
+			console.error(error)
+		}
+		// console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
+		return 'Bearer '.concat(getTokenPromise.data.AccessToken);
+	};
 
-// spits out array of objects  
- ingestEnergy('inverter');
-// https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token
-
+	// spits out array of objects  
+	ingestEnergy('inverter');
+	// https://webapidemo.horizon.greenpowermonitor.com/api/Account/Token
+	
  // spits out array of objects that have variable ids
 //  ingestEnergy('plant');
