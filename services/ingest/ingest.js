@@ -67,7 +67,7 @@ console.info('AUTH_URL = ', process.env.AUTH_URL)
 console.info('BASE_GPM_URL = ', process.env.BASE_GPM_URL)
 console.info(`${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`)
 // ingest data with axios 
-const ingestEnergy = async (iOp) => {
+const ingestEnergy = async iOp => {
 	try {
 		
 		const facilitiesURL = `${process.env.BASE_GPM_URL}/facilities`;
@@ -136,8 +136,11 @@ const ingestEnergy = async (iOp) => {
 			// variablesArray become an array of objects which have a VariableId key
 			// in them
 			let variablesArray = await callForVariables(invertersArray, authString, iOp)
-			getData(variablesArray, authString); // getData should pull data according to variableId
-
+			// TODO: Save this data in db
+			let dataArray =  await getData(variablesArray, authString); // getData should pull data according to variableId
+			console.log('dataArray = ', dataArray)
+			return dataArray;
+			
 	} catch (error) {
 			if (error.response) {
 				// The request was made and the server responded with a status code
@@ -167,17 +170,17 @@ const ingestEnergy = async (iOp) => {
 		 console.error('You\'re using callForVariables wrong! It takes plant or string');
 	 }
 	 const varUrlParam = (iOp === 'inverter') ?
-  //  `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter` :
-  'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
-	  // `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`
- 'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
+   `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter` :
+  // 'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
+	  `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`
+//  'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
 	 console.log('varUrlParam = ', varUrlParam);
 		const variableIdPromises = arr.map( async inverter => {
 			try { 
 			const variableIdResponse = await axios({
 				method: 'post',
 				url: varUrlParam,
-				data: inverter,  // TODO:
+				data: inverter,  // TODO: est un problema?
 				headers: { 'Authorization': authString }
 			});
       let respObj = {}; 
@@ -213,7 +216,11 @@ const ingestEnergy = async (iOp) => {
 			}
 			// console.log('error.config = \n', error.config);
 		}
+
+
+		
 	});
+
 		return Promise.all(variableIdPromises)
 			.then((rawValues) => {
 				console.log('rawValues', rawValues)
@@ -280,7 +287,7 @@ const ingestEnergy = async (iOp) => {
 		});
 		
 		return Promise.all(Promises)
-			.then((rawValues) => {
+			.then(rawValues => {
 				console.log('rawValues', rawValues)
 				let values = rawValues.filter( val => val);	
 				// console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));

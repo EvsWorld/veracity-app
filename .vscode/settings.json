@@ -1,5 +1,7 @@
 {
   "appService.zipIgnorePattern": [
     "node_modules{,/**}"
-  ]
+  ],
+  "todo-tree.flat": false,
+  "todo-tree.grouped": true
 }
