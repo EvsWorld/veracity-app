@@ -132,12 +132,12 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
 }
 
   // make array of device info, for all facilities
-async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlant, powerOrIrradianceParam) {
+async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
   const promises = facilityIdArray.map( async facility => {
     /*  const devicesByTypeInverterUrl =
     `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
     */
-    const facilityOrInvertersUrl = (inverterOrPlant === 'plant') ? `http://192.168.32.124:6600/api/horizon/facilities/${facility}` 
+    const facilityOrInvertersUrl = (inverterOrPlantParam === 'plant') ? `http://192.168.32.124:6600/api/horizon/facilities/${facility}` 
     : `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     const response = await axios( facilityOrInvertersUrl, { headers: {
     'Authorization': authStringParam} } );
@@ -412,7 +412,7 @@ const variableIdPromises = arr.map( async inverter => {
   // console.log('inverterIrradianceData = ', inverterIrradianceData)  
 
   const plantPowerData = ingest('plant', 'power');
-  console.log('plantPowerData = ', plantPowerData);
+  // console.log('plantPowerData = ', plantPowerData);
 
   // const plantIrradianceData = ingest('plant', 'irradiance');
   // console.log('plantIrradienceData = ', plantIrradianceData);
