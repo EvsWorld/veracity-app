@@ -61,16 +61,16 @@ console.log('you. are. AWESOME!');
 
 // Uncomment variables for your desired environment:
 // EPP2
-const username = process.env.USERNAME_EPP2;
-const password = process.env.PASSWORD_EPP2;
-const authUrl = process.env.AUTH_URL_EPP2;
-const baseUrl = process.env.BASE_URL_EPP2;
+// const username = process.env.USERNAME_EPP2;
+// const password = process.env.PASSWORD_EPP2;
+// const authUrl = process.env.AUTH_URL_EPP2;
+// const baseUrl = process.env.BASE_URL_EPP2;
 
 // DEMO
-// const username = process.env.USERNAME_DEMO;
-// const password = process.env.PASSWORD_DEMO;
-// const authUrl = process.env.AUTH_URL_DEMO;
-// const baseUrl = process.env.BASE_URL_DEMO;
+const username = process.env.USERNAME_DEMO;
+const password = process.env.PASSWORD_DEMO;
+const authUrl = process.env.AUTH_URL_DEMO;
+const baseUrl = process.env.BASE_URL_DEMO;
 
 console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  authUrl, '\nbaseUrl = ', baseUrl);
@@ -153,7 +153,7 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
     /*  const devicesByTypeInverterUrl =
     `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
-    const invertersUrl = `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
+    const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     const response = await axios( invertersUrl, { headers: {
     'Authorization': authStringParam} } );
     if (response.data) return response.data // array of inverters
