@@ -92,7 +92,7 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = { 'username': username, 'password': password }
-    const authUrl = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
+    // const authUrl = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
     // const authString = await getBearerString(authUrl, creds);
     const authString = await getBearerString(authUrl, creds);
     console.log('authString = ', authString)
@@ -511,7 +511,7 @@ inverter level of plant, power or irradiance)  */
    * @returns {Promise.<string, Error>} - Bearer token 
    */
   async function getBearerString (authUrlParam, credsParam) {
-    // console.log('creds = ', credsParam)
+    console.log('creds = ', credsParam)
     let getTokenPromise = {}
     try {
       console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
@@ -519,7 +519,7 @@ inverter level of plant, power or irradiance)  */
     }	catch (error) {
       console.error(error)
     }
-    // console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
+    console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
     return 'Bearer '.concat(getTokenPromise.data.AccessToken);
   };
 
