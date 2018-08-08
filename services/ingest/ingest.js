@@ -58,10 +58,22 @@ const axios = require('axios');
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
 console.log('you. are. AWESOME!');  
-console.info('AUTH_URL = ', process.env.AUTH_URL)
-console.info('BASE_GPM_URL = ', process.env.BASE_GPM_URL)
-console.info(`${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`)
 
+// Uncomment variables for your desired environment:
+// EPP2
+const username = process.env.USERNAME_EPP2;
+const password = process.env.PASSWORD_EPP2;
+const authUrl = process.env.AUTH_URL_EPP2;
+const baseUrl = process.env.BASE_URL_EPP2;
+
+// DEMO
+// const username = process.env.USERNAME_DEMO;
+// const password = process.env.PASSWORD_DEMO;
+// const authUrl = process.env.AUTH_URL_DEMO;
+// const baseUrl = process.env.BASE_URL_DEMO;
+
+console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
+ authUrl, '\nbaseUrl = ', baseUrl);
   /**
  * @typedef localObject
  * @property {string} DeviceId True if the token is valid.
@@ -78,11 +90,10 @@ console.info(`${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter`)
  */
 const ingest = async (inverterOrPlant, powerOrIrradiance) => {
   try {
-    const facilitiesUrl = `${process.env.BASE_GPM_URL}/facilities`;
-    const creds = { 'username': process.env.GPM_USERNAME, 'password':
-                    process.env.GPM_PASSWORD }
+    const facilitiesUrl = `${baseUrl}/horizon/facilities`;
+    const creds = { 'username': username, 'password': password }
     const authUrl = 'http://192.168.32.124:6600/api/Account/Token?api_key=horizon';
-    // const authString = await getBearerString(process.env.AUTH_URL, creds);
+    // const authString = await getBearerString(authUrl, creds);
     const authString = await getBearerString(authUrl, creds);
     console.log('authString = ', authString)
     // let bearerConfig = { headers: { 'Authorization': authString } }
@@ -92,22 +103,26 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
       Authorization: authString} });
     
     // make array of facility ids
+    const facilities = facilityIdsResponse.data;
     const facilityIdArray = []; 
-    facilityIdsResponse.data.forEach( facility => {
+    facilities.forEach( facility => {
       if (facility && facility.Parameters[0]) {
       facilityIdArray.push(facility.Parameters[0].Key.FacilityId) ;
     }});
     // to have all info for each inverter
     // based on inverterOrPlant and powerOrIrradiance, we call for the
     // appropriate parameterId
-    const invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance);
-    
+    const invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
+      .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"invertersArray/getInverterInfo failed",error: error})});
     // variablesIds become an array of objects which have a VariableId key
   
-    const variableIds = (inverterOrPlant === 'inverter') ? await callForVariables(invertersArray, authString, inverterOrPlant, powerOrIrradiance) 
-    : await callForVariables(facilityIdsResponse.data, authString, inverterOrPlant, powerOrIrradiance)
+    const variableIds = (inverterOrPlant === 'inverter') ? 
+        await callInverterVars(invertersArray, authString, inverterOrPlant, powerOrIrradiance) 
+      : await callFacilityVars(facilities, authString, inverterOrPlant, powerOrIrradiance)
     
-    let dataArray =  await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance);
+    let dataArray =  await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
+      .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"dataArray/getValues failed",error: error})});
+
     console.log('dataArray = ', dataArray)
     return dataArray;
 
@@ -132,75 +147,11 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
   }
 }
 
-async function getFacilityInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-  const promises = facilityIdArray.map( async facility => {
-    /*  const devicesByTypeInverterUrl =
-    `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
-    */
-    const invertersUrl = `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
-    const response = await axios( invertersUrl, { headers: {
-    'Authorization': authStringParam} } );
-    if (response.data) return response.data // array of inverters
-  });
-  
-  // wait until all promises resolve
-  // array of arrays. each child array is a list of inverters for a facility  
-  const invertersArrayNotFlat = await Promise.all(promises)
-   .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
-   
-  let invertersArrayAndZeros = [].concat.apply([],invertersArrayNotFlat);
-  
-  // filter out facilitites that don't have inverters in them
-  const invertersArrayFiltered = invertersArrayAndZeros.filter( inverter =>  {
-    // console.log( 'inverter.Parameters.length = ', inverter.Parameters.length);
-    return inverter.Parameters.length > 0
-  });
-  // console.log('invertersArrayFiltered = ', invertersArrayFiltered)
-  
-  // TODO: find a way to bring along all of these properties to the next array
-  // of object with the variableids
-  return invertersArrayFiltered.map( inverter => { 
-    // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
-    // indexO);
-    // let facilityIrradianceObj = inverter.Parameters.filter( param => param.Name == 'Irradiance')[0];
-    // let plantRatedPowerObj = inverter.Descriptions.filter( param => param.Name == 'PlantRated_Power')[0];
-    let facilityPowerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
-    let peakPowerObj = inverter.Descriptions.filter( param => param.Name == 'Peak Power')[0];
-    let powerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
-    let irradianceObj = inverter.Parameters.filter( param => param.Name == 'Assigned Irradiance')[0];
-    // TODO: we have COM status here if we want to get that too. 
-    let tempObj = {}
-    // add properties you need from the inverter level, then return that
-    // object to map the whole object; this will build the 'invertersArray'
-    // tempObj.InverterLevelName = peakPowerObj.Name; // not really needed
-    // tempObj.InverterLevelId = inverter.Id;
-    // tempObj.ParameterId_facility_irradiance = facilityIrradianceObj.Key.ParameterId;
-    // tempObj.ParameterId_facility_power = facilityPowerObj ? facilityPowerObj.Key.ParameterId 
-      // : null; 
-    
-    tempObj.DeviceId_irradiance = irradianceObj.Key.DeviceId;
-    tempObj.ParameterId_irradiance = irradianceObj.Key.ParameterId;
-
-    tempObj.DeviceId_power = powerObj.Key.DeviceId;
-    tempObj.ParameterId_power = powerObj.Key.ParameterId;
-
-    tempObj.FacilityId = inverter.Id;
-    tempObj.PeakPower = peakPowerObj.Value;
-    tempObj.ParametersLevelName = (powerObj.Name === 'power') ? powerObj.Name
-                                                : irradianceObj.ParameterType;
-    tempObj.ParameterType = powerObj.ParameterType;
-    tempObj.Units = (powerOrIrradianceParam === 'power') ? powerObj.Units 
-                                                        : irradianceObj.Units;
-    tempObj.Stooge = 'TheStooge';
-    return tempObj;
-  });
-}
-
   // make array of device info, for all facilities
 async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
   const promises = facilityIdArray.map( async facility => {
     /*  const devicesByTypeInverterUrl =
-    `${process.env.BASE_GPM_URL}/facilities/${facility}/devices/by-type/INVERTER`;
+    `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
     const invertersUrl = `http://192.168.32.124:6600/api/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     const response = await axios( invertersUrl, { headers: {
@@ -261,52 +212,43 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
   });
 }
 
-/* takes array of inverter info and options to specify which variableId nd
-facilityId to get,
+/* takes array of facility info and options to specify which variableId 
 and return array of objects with variableIds for the data specified (eg
 inverter level of plant, power or irradiance)  */
 /**
  * 
- * @param {Array} arr - inverters with data needed to get variableIds 
+ * @param {Array} arr - facilities with data needed to get variableIds 
  * @param {string} authStringParam
  * @param {string} inverterOrPlantParam 
  * @param {string} powerOrIrradianceParam 
  */
- async function callForVariables(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-   const varUrlParam = (inverterOrPlantParam === 'inverter') ?
-   `${process.env.BASE_GPM_URL}/parametertovariable/deviceparameter` :
-  // 'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
-    `${process.env.BASE_GPM_URL}/parametertovariable/facilityparameter`
-// 'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
-console.log('varUrlParam = ', varUrlParam);
+ async function callFacilityVariables(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+   const varUrlParam = 
+    `${baseUrl}/horizon/parametertovariable/facilityparameter`
+  // 'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
+  console.log('varUrlParam = ', varUrlParam);
 
 
 const variableIdPromises = arr.map( async inverter => {
   let requestData = {};
-  if (inverterOrPlantParam === 'plant') {
+
+    let irradianceObj = inverter.Parameters.filter( param => param.Name == 'Irradiance')[0];
+    let facilityPowerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
+    let facilityEnergyObj = inverter.Parameters.filter( param => param.Name == 'Energy')[0];
     if (powerOrIrradianceParam === 'power') {
       requestData = { 
-        "ParameterId": 2,
-        "FacilityId": inverter.FacilityId 
+        "ParameterId": facilityPowerObj.Key.ParameterId,
+        "FacilityId": inverter.Id 
       }
     } else if(powerOrIrradianceParam == 'irradiance')  {
       requestData = { 
-        "ParameterId": 8,
-        "FacilityId": inverter.FacilityId 
+        "ParameterId": irradianceObj.Key.ParameterId,
+        "FacilityId": inverter.Id 
       }
-
-    }
-  } else if (powerOrIrradianceParam == 'power') {
+    } else if(powerOrIrradianceParam == 'energy')  {
       requestData = { 
-        "DeviceId": inverter.DeviceId_power,
-        "ParameterId": inverter.ParameterId_power,
-        "FacilityId": inverter.FacilityId
-      }
-    } else if (powerOrIrradianceParam == 'irradiance') {
-      requestData = { 
-        "DeviceId": inverter.DeviceId_irradiance,
-        "ParameterId": inverter.ParameterId_irradiance,
-        "FacilityId": inverter.FacilityId
+        "ParameterId": facilityEnergyObj.Key.ParameterId,
+        "FacilityId": inverter.Id 
       }
     }
       try { 
@@ -336,7 +278,7 @@ const variableIdPromises = arr.map( async inverter => {
         respObj.Unit = variableIdResponse.data.Unit;
         respObj.PeakPower = inverter.PeakPower;
       }
-      console.log( 'In callForVariables, inverter = ', inverter);
+      console.log( 'In callVariables, inverter = ', inverter);
       console.log('respObj = ', respObj)
       if (variableIdResponse.data) return respObj
       
@@ -359,17 +301,123 @@ const variableIdPromises = arr.map( async inverter => {
       // console.log('error.config = \n', error.config);
     }
   });
+  return Promise.all(variableIdPromises)
+    .then((rawValues) => {
+      console.log('rawValues', rawValues)
+      let values = rawValues.filter(rawVal => rawVal)	
+      // console.log(`The Variable ids for ${inverterOrPlant} = `, values)
+      return values;
+    }, function() {
+      console.log('stuff failed')
+    }); 
+}
 
-    return Promise.all(variableIdPromises)
-      .then((rawValues) => {
-        console.log('rawValues', rawValues)
-        let values = rawValues.filter(rawVal => rawVal)	
-        // console.log(`The Variable ids for ${inverterOrPlant} = `, values)
-        return values;
-      }, function() {
-        console.log('stuff failed')
-      }); 
-  }
+/* takes array of inverter info and options to specify which variableId nd
+facilityId to get,
+and return array of objects with variableIds for the data specified (eg
+inverter level of plant, power or irradiance)  */
+/**
+ * 
+ * @param {Array} arr - inverters with data needed to get variableIds 
+ * @param {string} authStringParam
+ * @param {string} inverterOrPlantParam 
+ * @param {string} powerOrIrradianceParam 
+ */
+ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+   const varUrlParam = (inverterOrPlantParam === 'inverter') ?
+   `${baseUrl}/horizon/parametertovariable/deviceparameter` :
+  // 'http://192.168.32.124:6600/api/horizon/parametertovariable/deviceparameter' :
+    `${baseUrl}/parametertovariable/facilityparameter`
+  // 'http://192.168.32.124:6600/api/horizon/parametertovariable/facilityparameter';
+  console.log('varUrlParam = ', varUrlParam);
+  const variableIdPromises = arr.map( async inverter => {
+    let requestData = {};
+    if (inverterOrPlantParam === 'plant') {
+      if (powerOrIrradianceParam === 'power') {
+        requestData = { 
+          "ParameterId": 2,
+          "FacilityId": inverter.FacilityId 
+        }
+      } else if(powerOrIrradianceParam == 'irradiance')  {
+        requestData = { 
+          "ParameterId": 8,
+          "FacilityId": inverter.FacilityId 
+        }
+
+      }
+    } else if (powerOrIrradianceParam == 'power') {
+        requestData = { 
+          "DeviceId": inverter.DeviceId_power,
+          "ParameterId": inverter.ParameterId_power,
+          "FacilityId": inverter.FacilityId
+        }
+      } else if (powerOrIrradianceParam == 'irradiance') {
+        requestData = { 
+          "DeviceId": inverter.DeviceId_irradiance,
+          "ParameterId": inverter.ParameterId_irradiance,
+          "FacilityId": inverter.FacilityId
+        }
+      }
+        try { 
+        const variableIdResponse = await axios({
+          method: 'post',
+          Url: varUrlParam,
+          data: requestData,  
+          headers: { 'Authorization': authStringParam }
+        })
+        .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"variableIdResponse failed",error: error})});;
+        
+        let respObj = {}; 
+        // in this respObj, we must get all properties from previous request in
+        // here
+      // it seems here we can only call for one variable at a time.
+      // or I could make this object conditional, depending on what argument is
+      // passed to powerOrIrradiance 
+      if (variableIdResponse.data) {
+        // respObj.varId_Inv_Power = 
+        // respObj.varId_Inv_Irr = 
+        // respObj.varId_Plant_Power = 
+        // respObj.varId_Plant_Irradiance = 
+        respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
+        respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
+        respObj.VariableId = variableIdResponse.data.Key.VariableId;
+        respObj.Name = variableIdResponse.data.Name;
+        respObj.Unit = variableIdResponse.data.Unit;
+        respObj.PeakPower = inverter.PeakPower;
+      }
+      console.log( 'In callVariables, inverter = ', inverter);
+      console.log('respObj = ', respObj)
+      if (variableIdResponse.data) return respObj
+      
+    } catch (error) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.log('\nError, request made, but server responded with ...', error.response.data);
+        console.log('\nError.response.status = ', error.response.status);
+        console.log('\nError.response.headers = ', error.response.headers);
+      } else if (error.request) {
+        // The request was made but no response was received `error.request` is
+        // an instance of XMLHttpRequest in the browser and an instance of
+        // http.ClientRequest in node.js
+        console.log('Error. Request made but no response recieved....', error.request);
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.log('Error in setting up request....', error.message);
+      }
+      // console.log('error.config = \n', error.config);
+    }
+  });
+  return Promise.all(variableIdPromises)
+    .then((rawValues) => {
+      console.log('rawValues', rawValues)
+      let values = rawValues.filter(rawVal => rawVal)	
+      // console.log(`The Variable ids for ${inverterOrPlant} = `, values)
+      return values;
+    }, function() {
+      console.log('stuff failed')
+    }); 
+}
 
   // returns array of objects. Each object is inverter or facility
   /**
@@ -377,7 +425,7 @@ const variableIdPromises = arr.map( async inverter => {
    * @param {string} authStringParam 
    */
   function getValues(arr, authStringParam) {
-    //  console.log( 'Array input to callForVariables = ', arr);
+    //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = 'http://192.168.32.124:6600/api/DataList'
     const Promises = arr.map( async variable => {
       try { 
@@ -451,8 +499,6 @@ const variableIdPromises = arr.map( async inverter => {
       }); 
   }
   
-  
-
   /** This gets the bearer string
    * @constructor
    * @param {string} authUrlParam -  Url from which to get Bearer Token
@@ -476,25 +522,22 @@ const variableIdPromises = arr.map( async inverter => {
 
   function CustomErrorHandler(someObject){
     console.log(someObject)
-}
+  }
 
 
 
   // spits out array of objects; each object has inverter info and a field for data  
-  // const inverterPowerData = ingest('inverter', 'power');
-  // console.log('inverterPowerData = ', inverterPowerData);
+  const inverterPowerData = ingest('inverter', 'power');
+  console.log('inverterPowerData = ', inverterPowerData);
 
   // const inverterIrradianceData = ingest('inverter','irradiance' );
   // console.log('inverterIrradianceData = ', inverterIrradianceData)  
 
-  const plantPowerData = ingest('plant', 'power');
+  // const plantPowerData = ingest('plant', 'power');
   // console.log('plantPowerData = ', plantPowerData);
 
   // const plantIrradianceData = ingest('plant', 'irradiance');
   // console.log('plantIrradienceData = ', plantIrradianceData);
 
-
-
-
-
-  
+  // Just an experiment
+  // const plantEnergyData = ingest('plant', 'energy'); 
