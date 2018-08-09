@@ -509,7 +509,7 @@ inverter level of plant, power or irradiance)  */
       }); 
   }
   
-  /** This gets the bearer string
+  /** This gets the bearer string** 
    * @constructor
    * @param {string} authUrlParam -  Url from which to get Bearer Token
    * @param {Object} credsParam - Object w username and password 
