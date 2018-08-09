@@ -267,11 +267,7 @@ const variableIdPromises = arr.map( async inverter => {
         data: requestData,  
         headers: { 'Authorization': authStringParam }
       })
-<<<<<<< HEAD
       .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});
-=======
-      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});;
->>>>>>> 2950bddf47d03cced3a9be5556434018d0b3f9a1
       
       let respObj = {}; 
       // in this respObj, we must get all properties from previous request in
@@ -450,6 +446,7 @@ inverter level of plant, power or irradiance)  */
         // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Inv_Irr;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
+        //   customDataSourceId = variable.varId_Plant_Power;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Plant_Irradiance;
         // }
@@ -467,6 +464,7 @@ inverter level of plant, power or irradiance)  */
           }
         })
         .catch((error)=> {throw new CustomErrorHandler({code: 106, message:"dataResponse failed",error: error})});
+        dataResponse.data.forEach( dp => {
           delete dp.DataSourceId;
           return dp;
         })
@@ -539,7 +537,6 @@ inverter level of plant, power or irradiance)  */
   function CustomErrorHandler(someObject){
     console.log(someObject)
   }
-
 
 
   // spits out array of objects; each object has inverter info and a field for data  
