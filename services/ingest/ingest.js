@@ -1,4 +1,5 @@
 #! /usr/bin/env node
+// a silly thing to test wip 1
 
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
