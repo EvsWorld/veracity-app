@@ -1,7 +1,14 @@
 #! /usr/bin/env node
 
-// logger example
+require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
+// http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
+
+
+const Promise = require('bluebird');
+const axios = require('axios');
+
+// logger example
 var log4js = require('log4js');
 log4js.configure({
   appenders: { cheese: { type: 'file', filename: 'cheese.log' } },
@@ -19,8 +26,6 @@ logger.fatal('Cheese was breeding ground for listeria.');
 console.log('this is from console.log');
 process.stdout.write('this is from process.stdout.write\n')
 
-// http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
-const axios = require('axios');
 // ******** Database Config (will go in another file) ********
 // const mongoose = require("mongoose");
 // mongoose.Promise = global.Promise;
@@ -55,7 +60,6 @@ const axios = require('axios');
 }) */ // ************** End Database Config **********************
 
 
-require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
 
 console.log('you. are. AWESOME!');  
 
@@ -88,6 +92,9 @@ console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
  * timestamped data at eith plant or inverter level, and power or irradiance 
  */
+// NOTE: This is another way to do the pattern I'm using: 
+https://hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
+
 const ingest = async (inverterOrPlant, powerOrIrradiance) => {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
@@ -425,7 +432,8 @@ inverter level of plant, power or irradiance)  */
     let totalDataPointsForInterval = 0;
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
-    const Promises = arr.map( async variable => {
+    // const Promises = arr.map( variable => {
+    return Promise.map(arr, variable => {
       try { 
         // let customDataSourceId = ''; 
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
@@ -438,7 +446,7 @@ inverter level of plant, power or irradiance)  */
         //   customDataSourceId = variable.varId_Plant_Irradiance;
         // }
 
-        const variableIdResponse = await axios({
+        const variableIdResponse = axios({
           method: 'get',
           url: dataListUrl,
           headers: { 'Authorization': authStringParam },
@@ -462,7 +470,7 @@ inverter level of plant, power or irradiance)  */
           VariableId: variable.VariableId,
           data: variableIdResponse.data // array of datapoints
         }
-        console.log('number of data points for this inverter = ', resultObj.data.length)
+        console.log(`# of data pnts for inverter w DeviceId:${variable.DeviceId} = ${resultObj.data.length}`)
         totalDataPointsForInterval+=resultObj.data.length;
         if ( variableIdResponse.data ) return resultObj;
         
@@ -484,10 +492,7 @@ inverter level of plant, power or irradiance)  */
         }
         // console.log('error.config = \n', error.config);
       }
-    });
-    
-    return Promise.all(Promises)
-      .then(rawValues => {
+    }).then(rawValues => {
         let values = rawValues.filter( val => val);	
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
         console.log('dummy log')
