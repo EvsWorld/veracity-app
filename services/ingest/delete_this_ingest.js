@@ -153,7 +153,7 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
 
   // make array of device info, for all facilities
 async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-  const promises = facilityIdArray.map( async (facility) => {
+  const promises = facilityIdArray.map( async facility => {
     /*  const devicesByTypeInverterUrl =
     `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
@@ -264,7 +264,7 @@ const variableIdPromises = arr.map( async inverter => {
         data: requestData,  
         headers: { 'Authorization': authStringParam }
       })
-      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});
+      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});;
       
       let respObj = {}; 
       // in this respObj, we must get all properties from previous request in
@@ -334,7 +334,7 @@ inverter level of plant, power or irradiance)  */
    `${baseUrl}/horizon/parametertovariable/deviceparameter` :
     `${baseUrl}/parametertovariable/facilityparameter`
   console.log('varUrlParam = ', varUrlParam);
-  const variableIdPromises = arr.map( async ( inverter ) => {
+  const variableIdPromises = arr.map( async inverter => {
     let requestData = {};
     if (inverterOrPlantParam === 'plant') {
       if (powerOrIrradianceParam === 'power') {
@@ -371,7 +371,7 @@ inverter level of plant, power or irradiance)  */
           data: requestData,  
           headers: { 'Authorization': authStringParam }
         })
-        .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"variableIdResponse failed",error: error})});
+        .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"variableIdResponse failed",error: error})});;
         
         let respObj = {}; 
         // in this respObj, we must get all properties from previous request in
@@ -443,7 +443,6 @@ inverter level of plant, power or irradiance)  */
         // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Inv_Irr;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
-        //   customDataSourceId = variable.varId_Plant_Power;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Plant_Irradiance;
         // }
@@ -460,7 +459,7 @@ inverter level of plant, power or irradiance)  */
             grouping: 'raw'
           }
         })
-        .catch((error)=> {throw new CustomErrorHandler({code: 106, message:"dataResponse failed",error: error})});
+        .catch((error)=> {throw new CustomErrorHandler({code: 106, message:"dataResponse failed",error: error})});;
         
         dataResponse.data.forEach( dp => {
           delete dp.DataSourceId;
@@ -527,8 +526,7 @@ inverter level of plant, power or irradiance)  */
     }	catch (error) {
       console.error(error)
     }
-    console.log( 'bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
-
+    console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
     return 'Bearer '.concat(getTokenPromise.data.AccessToken);
   };
 
