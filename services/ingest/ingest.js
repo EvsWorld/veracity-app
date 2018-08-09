@@ -93,7 +93,7 @@ console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  * timestamped data at eith plant or inverter level, and power or irradiance 
  */
 // NOTE: This is another way to do the pattern I'm using: 
-https://hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
+// https: //hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
 
 const ingest = async (inverterOrPlant, powerOrIrradiance) => {
   try {
@@ -128,7 +128,7 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
       .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"dataArray/getValues failed",error: error})});
 
     // console.log('dataArray = ', dataArray)
-    return dataArray;
+    return await dataArray;
 
   } catch (error) {
       if (error.response) {
@@ -153,7 +153,7 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
 
   // make array of device info, for all facilities
 async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-  const promises = facilityIdArray.map( async facility => {
+  const promises = facilityIdArray.map( async (facility) => {
     /*  const devicesByTypeInverterUrl =
     `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
@@ -194,6 +194,8 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
     // object to map the whole object; this will build the 'invertersArray'
     // tempObj.InverterLevelName = peakPowerObj.Name; // not really needed
     // tempObj.InverterLevelId = inverter.Id;
+
+    // TODO: do this for inverter level ones so we dont get error when call function with 'plant' 
     tempObj.ParameterId_facility_irradiance = facilityIrradianceObj ? 
         facilityIrradianceObj.Key.ParameterId 
       : null;
@@ -256,13 +258,13 @@ const variableIdPromises = arr.map( async inverter => {
       }
     }
       try { 
-      const variableIdResponse = await axios({
+      const facVarIdResponse = await axios({
         method: 'post',
         url: varUrlParam,
         data: requestData,  
         headers: { 'Authorization': authStringParam }
       })
-      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"variableIdResponse failed",error: error})});;
+      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});;
       
       let respObj = {}; 
       // in this respObj, we must get all properties from previous request in
@@ -270,21 +272,21 @@ const variableIdPromises = arr.map( async inverter => {
      // it seems here we can only call for one variable at a time.
       // or I could make this object conditional, depending on what argument is
       // passed to powerOrIrradiance 
-      if (variableIdResponse.data) {
+      if (facVarIdResponse.data) {
         // respObj.varId_Inv_Power = 
         // respObj.varId_Inv_Irr = 
         // respObj.varId_Plant_Power = 
         // respObj.varId_Plant_Irradiance = 
-        respObj.FacilityId = variableIdResponse.data.Key.FacilityId;
-        respObj.DeviceId = variableIdResponse.data.Key.DeviceId;
-        respObj.VariableId = variableIdResponse.data.Key.VariableId;
-        respObj.Name = variableIdResponse.data.Name;
-        respObj.Unit = variableIdResponse.data.Unit;
+        respObj.FacilityId = facVarIdResponse.data.Key.FacilityId;
+        respObj.DeviceId = facVarIdResponse.data.Key.DeviceId;
+        respObj.VariableId = facVarIdResponse.data.Key.VariableId;
+        respObj.Name = facVarIdResponse.data.Name;
+        respObj.Unit = facVarIdResponse.data.Unit;
         respObj.PeakPower = inverter.PeakPower;
       }
       console.log( 'In callFacilityVars, inverter = ', inverter);
       // console.log('respObj = ', respObj)
-      if (variableIdResponse.data) return respObj
+      if (facVarIdResponse.data) return  respObj
       
     } catch (error) {
       if (error.response) {
@@ -308,7 +310,7 @@ const variableIdPromises = arr.map( async inverter => {
   return Promise.all(variableIdPromises)
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)	
-      console.log(`The Variable ids for ${inverterOrPlant} = `, values)
+      console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       console.log('from callFacilityVars, values = ', values)
       return values;
     }, function() {
@@ -332,7 +334,7 @@ inverter level of plant, power or irradiance)  */
    `${baseUrl}/horizon/parametertovariable/deviceparameter` :
     `${baseUrl}/parametertovariable/facilityparameter`
   console.log('varUrlParam = ', varUrlParam);
-  const variableIdPromises = arr.map( async inverter => {
+  const variableIdPromises = arr.map( async ( inverter ) => {
     let requestData = {};
     if (inverterOrPlantParam === 'plant') {
       if (powerOrIrradianceParam === 'power') {
@@ -409,7 +411,7 @@ inverter level of plant, power or irradiance)  */
         // Something happened in setting up the request that triggered an Error
         console.log('Error in setting up request....', error.message);
       }
-      // console.log('error.config = \n', error.config);
+      console.log('error.config = \n', error.config);
     }
   });
   return Promise.all(variableIdPromises)
@@ -428,12 +430,12 @@ inverter level of plant, power or irradiance)  */
    * @param {Promise.<Object,Error>[]} arr - inverter info 
    * @param {string} authStringParam 
    */
-  function getValues(arr, authStringParam) {
+   async function getValues(arr, authStringParam) {
     let totalDataPointsForInterval = 0;
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
-    // const Promises = arr.map( variable => {
-    return Promise.map(arr, variable => {
+      //   customDataSourceId = variable.varId_Plant_Power;
+    Promise.map(arr, async (variable) => {
       try { 
         // let customDataSourceId = ''; 
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
@@ -446,7 +448,7 @@ inverter level of plant, power or irradiance)  */
         //   customDataSourceId = variable.varId_Plant_Irradiance;
         // }
 
-        const variableIdResponse = axios({
+        const dataResponse = await axios({
           method: 'get',
           url: dataListUrl,
           headers: { 'Authorization': authStringParam },
@@ -457,8 +459,10 @@ inverter level of plant, power or irradiance)  */
             aggregationType: 0,
             grouping: 'raw'
           }
-        });
-        variableIdResponse.data.forEach( dp => {
+        })
+        .catch((error)=> {throw new CustomErrorHandler({code: 106, message:"dataResponse failed",error: error})});;
+        
+        dataResponse.data.forEach( dp => {
           delete dp.DataSourceId;
           return dp;
         })
@@ -468,11 +472,11 @@ inverter level of plant, power or irradiance)  */
           Name: variable.Name,
           Unit: variable.Unit,
           VariableId: variable.VariableId,
-          data: variableIdResponse.data // array of datapoints
+          data: dataResponse.data // array of datapoints
         }
         console.log(`# of data pnts for inverter w DeviceId:${variable.DeviceId} = ${resultObj.data.length}`)
         totalDataPointsForInterval+=resultObj.data.length;
-        if ( variableIdResponse.data ) return resultObj;
+        if ( dataResponse.data ) return resultObj; // await here?
         
       } catch (error) {
         if (error.response) {
@@ -492,11 +496,12 @@ inverter level of plant, power or irradiance)  */
         }
         // console.log('error.config = \n', error.config);
       }
-    }).then(rawValues => {
+    },{concurrency: 100})
+      .then(rawValues => {
         let values = rawValues.filter( val => val);	
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
         console.log('dummy log')
-        console.log('From callInverterVars, totalDataPointsForInterval = ', 
+        console.log('From getValues(), totalDataPointsForInterval = ', 
         totalDataPointsForInterval);
         // console.log('values = ', JSON.stringify(values, null, 2));
         return values;
@@ -505,7 +510,7 @@ inverter level of plant, power or irradiance)  */
       }); 
   }
   
-  /** This gets the bearer string
+  /** This gets the bearer string** 
    * @constructor
    * @param {string} authUrlParam -  Url from which to get Bearer Token
    * @param {Object} credsParam - Object w username and password 
