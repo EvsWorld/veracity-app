@@ -434,10 +434,8 @@ inverter level of plant, power or irradiance)  */
     let totalDataPointsForInterval = 0;
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
-    // const Promises = arr.map( variable => {
       //   customDataSourceId = variable.varId_Plant_Power;
-    Promise.map(arr, async (variable) => {
-      // return await 'premature return string';
+    Promise.map(arr, async variable => {
       try { 
         // let customDataSourceId = ''; 
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
