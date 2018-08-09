@@ -286,7 +286,7 @@ const variableIdPromises = arr.map( async inverter => {
       }
       console.log( 'In callFacilityVars, inverter = ', inverter);
       // console.log('respObj = ', respObj)
-      if (facVarIdResponse.data) return await respObj
+      if (facVarIdResponse.data) return  respObj
       
     } catch (error) {
       if (error.response) {
@@ -310,7 +310,7 @@ const variableIdPromises = arr.map( async inverter => {
   return Promise.all(variableIdPromises)
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)	
-      console.log(`The Variable ids for ${inverterOrPlant} = `, values)
+      console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       console.log('from callFacilityVars, values = ', values)
       return values;
     }, function() {
@@ -393,7 +393,7 @@ inverter level of plant, power or irradiance)  */
       }
       // console.log( 'In callInverterVars, inverter = \n', inverter);
       // console.log('respObj = ', respObj)
-      if (variableIdResponse.data) return await respObj
+      if (variableIdResponse.data) return respObj
       
     } catch (error) {
       if (error.response) {
@@ -414,7 +414,7 @@ inverter level of plant, power or irradiance)  */
       console.log('error.config = \n', error.config);
     }
   });
-  await Promise.all(variableIdPromises)
+  return Promise.all(variableIdPromises)
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
       let values = rawValues.filter(rawVal => rawVal)	
@@ -435,8 +435,9 @@ inverter level of plant, power or irradiance)  */
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
     // const Promises = arr.map( variable => {
-    return Promise.map(arr, async (variable) => {
-      return await 'premature return string';
+      //   customDataSourceId = variable.varId_Plant_Power;
+    Promise.map(arr, async (variable) => {
+      // return await 'premature return string';
       try { 
         // let customDataSourceId = ''; 
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
@@ -444,7 +445,6 @@ inverter level of plant, power or irradiance)  */
         // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Inv_Irr;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
-        //   customDataSourceId = variable.varId_Plant_Power;
         // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
         //   customDataSourceId = variable.varId_Plant_Irradiance;
         // }
@@ -497,11 +497,12 @@ inverter level of plant, power or irradiance)  */
         }
         // console.log('error.config = \n', error.config);
       }
-    }).then(rawValues => {
+    },{concurrency: 100})
+      .then(rawValues => {
         let values = rawValues.filter( val => val);	
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
         console.log('dummy log')
-        console.log('From callInverterVars, totalDataPointsForInterval = ', 
+        console.log('From getValues(), totalDataPointsForInterval = ', 
         totalDataPointsForInterval);
         // console.log('values = ', JSON.stringify(values, null, 2));
         return values;
@@ -528,7 +529,7 @@ inverter level of plant, power or irradiance)  */
       console.error(error)
     }
     console.log( 'bearer sting = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
-    return await 'Bearer '.concat(getTokenPromise.data.AccessToken);
+    return 'Bearer '.concat(getTokenPromise.data.AccessToken);
   };
 
   function CustomErrorHandler(someObject){
