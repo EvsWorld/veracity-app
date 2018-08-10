@@ -186,7 +186,7 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
           }
           console.log('error.config = \n', error.config);
         }
-      }, {concurrency: 20})
+      }, {concurrency: 50})
         .then((rawValues) => {
           let values = rawValues.filter(rawVal => rawVal)
           return values;
@@ -392,7 +392,7 @@ inverter level of plant, power or irradiance)  */
     }
 
     try {
-      console.log( 'In callInverterVars(), requestData = ', requestData)
+      // console.log( 'In callInverterVars(), requestData = ', requestData)
       const variableIdResponse = await axios({
         method: 'post',
         url: varUrlParam,
@@ -440,7 +440,7 @@ inverter level of plant, power or irradiance)  */
       }
       console.log('error.config = \n', error.config);
     }
-  }, {concurrency: 20})
+  }, {concurrency: 50})
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
       let values = rawValues.filter(rawVal => rawVal)
@@ -522,7 +522,7 @@ inverter level of plant, power or irradiance)  */
         }
         // console.log('error.config = \n', error.config);
       }
-    },{concurrency: 20})
+    },{concurrency: 50})
       .then(rawValues => {
         let values = rawValues.filter( val => val);
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
