@@ -122,11 +122,12 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
     let invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
       .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"invertersArray/getInverterInfo failed",error: error})});
     // variablesIds become an array of objects which have a VariableId key
+    // console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
     let variableIds = (inverterOrPlant === 'inverter') ?
         await callInverterVars(invertersArray, authString, inverterOrPlant, powerOrIrradiance)
       : await callFacilityVars(facilities, authString, inverterOrPlant, powerOrIrradiance)
-    console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
+    // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
     let dataArray =  await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
       .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"dataArray/getValues failed",error: error})});
 
@@ -156,21 +157,44 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
 
   // make array of device info, for all facilities
 async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-  const promises = facilityIdArray.map( async (facility) => {
+ const invertersArrayNotFlat = await Promise.map(facilityIdArray, async (facility) => {
     /*  const devicesByTypeInverterUrl =
     `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
-    const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
-    const response = await axios( invertersUrl, { headers: {
-    'Authorization': authStringParam} } );
-    if (response.data) return response.data // array of inverters
-  });
+   const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
+   try {
+      const response = await axios( invertersUrl, { headers: {
+      'Authorization': authStringParam} } )
+        .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
+      if (response.data) return response.data // array of inverters
 
-  // wait until all promises resolve
-  // array of arrays. each child array is a list of inverters for a facility
-  const invertersArrayNotFlat = await Promise.all(promises)
-   .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
-
+    } catch (error) {
+          if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.log('\nError, request made, but server responded with ...', error.response.data);
+            console.log('\nError.response.status = ', error.response.status);
+            console.log('\nError.response.headers = ', error.response.headers);
+          } else if (error.request) {
+            // The request was made but no response was received `error.request` is
+            // an instance of XMLHttpRequest in the browser and an instance of
+            // http.ClientRequest in node.js
+            console.log('Error. Request made but no response recieved....', error.request);
+          } else {
+            // Something happened in setting up the request that triggered an Error
+            console.log('Error in setting up request....', error.message);
+          }
+          console.log('error.config = \n', error.config);
+        }
+      }, {concurrency: 20})
+        .then((rawValues) => {
+          let values = rawValues.filter(rawVal => rawVal)
+          return values;
+        }, function() {
+          console.log('stuff failed in getInverterInfo()' +
+          'invertersArrayNotFlat');
+      });
+  // nested Arrays
   let invertersArrayAndZeros = [].concat.apply([],invertersArrayNotFlat);
 
   // filter out facilitites that don't have inverters in them
@@ -287,7 +311,7 @@ const variableIdPromises = arr.map( async (inverter) => {
         respObj.Unit = facVarIdResponse.data.Unit;
         respObj.PeakPower = inverter.PeakPower;
       }
-      console.log( 'In callFacilityVars, inverter = ', inverter);
+      // console.log( 'In callFacilityVars, inverter = ', inverter);
       // console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return  respObj;
 
@@ -314,7 +338,7 @@ const variableIdPromises = arr.map( async (inverter) => {
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)
       console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
-      console.log('from callFacilityVars, values = ', values)
+      // console.log('from callFacilityVars, values = ', values)
       return values;
     }, function() {
       console.log('stuff failed')
@@ -502,7 +526,6 @@ inverter level of plant, power or irradiance)  */
       .then(rawValues => {
         let values = rawValues.filter( val => val);
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
-        console.log('dummy log')
         console.log('From getValues(), totalDataPointsForInterval = ',
         totalDataPointsForInterval);
         // console.log('values = ', JSON.stringify(values, null, 2));
