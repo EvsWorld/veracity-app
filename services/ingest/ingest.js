@@ -438,7 +438,7 @@ inverter level of plant, power or irradiance)  */
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
       //   customDataSourceId = variable.varId_Plant_Power;
-    Promise.map(arr, async (variable) => {
+     Promise.map(arr, async (variable) => {
       try { 
         // let customDataSourceId = ''; 
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
@@ -498,7 +498,7 @@ inverter level of plant, power or irradiance)  */
         }
         // console.log('error.config = \n', error.config);
       }
-    },{concurrency: 100})
+    },{concurrency: 20})
       .then(rawValues => {
         let values = rawValues.filter( val => val);	
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
