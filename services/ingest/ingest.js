@@ -62,16 +62,16 @@ console.log('you. are. AWESOME!');
 
 // Uncomment variables for your desired environment:
 // EPP2
-const username = process.env.USERNAME_EPP2;
-const password = process.env.PASSWORD_EPP2;
-const authUrl = process.env.AUTH_URL_EPP2;
-const baseUrl = process.env.BASE_URL_EPP2;
+// const username = process.env.USERNAME_EPP2;
+// const password = process.env.PASSWORD_EPP2;
+// const authUrl = process.env.AUTH_URL_EPP2;
+// const baseUrl = process.env.BASE_URL_EPP2;
 
 // DEMO
-// const username = process.env.USERNAME_DEMO;
-// const password = process.env.PASSWORD_DEMO;
-// const authUrl = process.env.AUTH_URL_DEMO;
-// const baseUrl = process.env.BASE_URL_DEMO;
+const username = process.env.USERNAME_DEMO;
+const password = process.env.PASSWORD_DEMO;
+const authUrl = process.env.AUTH_URL_DEMO;
+const baseUrl = process.env.BASE_URL_DEMO;
 
 console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  authUrl, '\nbaseUrl = ', baseUrl);
@@ -161,7 +161,7 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
         .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
       if (response.data) return response.data // array of inverters
 
-  }, {concurrency: 50})
+  }, {concurrency: 20})
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)
       return values;
@@ -291,7 +291,7 @@ return Promise.map(arr, async (facility) => {
       // console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return  respObj;
 
-  }, {concurrency: 50})
+  }, {concurrency: 20})
       .then((rawValues) => {
         let values = rawValues.filter(rawVal => rawVal)
         console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
@@ -378,7 +378,7 @@ inverter level of plant, power or irradiance)  */
       // console.log('respObj = ', respObj)
       if (variableIdResponse.data) return respObj;
 
-  }, {concurrency: 50})
+  }, {concurrency: 20})
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
       let values = rawValues.filter(rawVal => rawVal)
@@ -440,7 +440,7 @@ inverter level of plant, power or irradiance)  */
         totalDataPointsForInterval+=1;
         // maybe await would be better here, but it at least works with a simple return
         if ( dataResponse.data ) return resultObj;
-    },{concurrency: 50})
+    },{concurrency: 20})
       .then(rawValues => {
         let values = rawValues.filter( val => val);
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
@@ -477,10 +477,10 @@ inverter level of plant, power or irradiance)  */
   }
 
   // spits out array of objects; each object has inverter info and a field for data
-  // const inverterPowerData = ingest('inverter', 'power');
+  const inverterPowerData = ingest('inverter', 'power');
   // console.log('inverterPowerData = ', inverterPowerData);
 
-  const inverterIrradianceData = ingest('inverter','irradiance' );
+  // const inverterIrradianceData = ingest('inverter','irradiance' );
   // console.log('inverterIrradianceData = ', inverterIrradianceData)
 
   // const plantPowerData = ingest('plant', 'power');
