@@ -1,12 +1,6 @@
 #! /usr/bin/env node
-// a silly thing to test wip 1
-// a silly thing to test wip 2
-// a silly thing to test wip 3
-
 require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
-
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
-
 
 const Promise = require('bluebird');
 const axios = require('axios');
@@ -162,38 +156,19 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
     `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
     */
    const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
-   try {
       const response = await axios( invertersUrl, { headers: {
       'Authorization': authStringParam} } )
         .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
       if (response.data) return response.data // array of inverters
 
-    } catch (error) {
-          if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            console.log('\nError, request made, but server responded with ...', error.response.data);
-            console.log('\nError.response.status = ', error.response.status);
-            console.log('\nError.response.headers = ', error.response.headers);
-          } else if (error.request) {
-            // The request was made but no response was received `error.request` is
-            // an instance of XMLHttpRequest in the browser and an instance of
-            // http.ClientRequest in node.js
-            console.log('Error. Request made but no response recieved....', error.request);
-          } else {
-            // Something happened in setting up the request that triggered an Error
-            console.log('Error in setting up request....', error.message);
-          }
-          console.log('error.config = \n', error.config);
-        }
-      }, {concurrency: 50})
-        .then((rawValues) => {
-          let values = rawValues.filter(rawVal => rawVal)
-          return values;
-        }, function() {
-          console.log('stuff failed in getInverterInfo()' +
-          'invertersArrayNotFlat');
-      });
+  }, {concurrency: 50})
+    .then((rawValues) => {
+      let values = rawValues.filter(rawVal => rawVal)
+      return values;
+    }, function() {
+      console.log('stuff failed in getInverterInfo()' +
+      'invertersArrayNotFlat');
+  });
   // nested Arrays
   let invertersArrayAndZeros = [].concat.apply([],invertersArrayNotFlat);
 
@@ -216,33 +191,33 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
     let powerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
     let irradianceObj = inverter.Parameters.filter( param => param.Name == 'Assigned Irradiance')[0];
     // TODO: we have COM status here if we want to get that too.
-    let tempObj = {}
     // add properties you need from the inverter level, then return that
     // object to map the whole object; this will build the 'invertersArray'
     // tempObj.InverterLevelName = peakPowerObj.Name; // not really needed
     // tempObj.InverterLevelId = inverter.Id;
 
     // TODO: do this for inverter level ones so we dont get error when call function with 'plant'
-    tempObj.ParameterId_facility_irradiance = facilityIrradianceObj ?
-        facilityIrradianceObj.Key.ParameterId
-      : null;
-    tempObj.ParameterId_facility_power = facilityPowerObj ? facilityPowerObj.Key.ParameterId
-      : null;
+    let tempObj = {
+      ParameterId_facility_irradiance: facilityIrradianceObj ?
+          facilityIrradianceObj.Key.ParameterId
+        : null,
+      ParameterId_facility_power: facilityPowerObj ? facilityPowerObj.Key.ParameterId
+        : null,
+      DeviceId_irradiance: irradianceObj.Key.DeviceId,
+      ParameterId_irradiance: irradianceObj.Key.ParameterId,
 
-    tempObj.DeviceId_irradiance = irradianceObj.Key.DeviceId;
-    tempObj.ParameterId_irradiance = irradianceObj.Key.ParameterId;
+      DeviceId_power: powerObj.Key.DeviceId,
+      ParameterId_power: powerObj.Key.ParameterId,
 
-    tempObj.DeviceId_power = powerObj.Key.DeviceId;
-    tempObj.ParameterId_power = powerObj.Key.ParameterId;
-
-    tempObj.FacilityId = inverter.FacilityId;
-    tempObj.PeakPower = peakPowerObj.Value;
-    tempObj.ParametersLevelName = (powerObj.Name === 'power') ? powerObj.Name
-                                                : irradianceObj.ParameterType;
-    tempObj.ParameterType = powerObj.ParameterType;
-    tempObj.Units = (powerOrIrradianceParam === 'power') ? powerObj.Units
-                                                        : irradianceObj.Units;
-    tempObj.Stooge = 'TheStooge';
+      FacilityId: inverter.FacilityId,
+      PeakPower: peakPowerObj.Value,
+      ParametersLevelName: (powerObj.Name === 'power') ? powerObj.Name
+                                                  : irradianceObj.ParameterType,
+      ParameterType: powerObj.ParameterType,
+      Units: (powerOrIrradianceParam === 'power') ? powerObj.Units
+                                                          : irradianceObj.Units,
+      Stooge: 'TheStooge'
+    }
     return tempObj;
   });
 }
@@ -262,29 +237,30 @@ inverter level of plant, power or irradiance)  */
     `${baseUrl}/horizon/parametertovariable/facilityparameter`
   console.log('varUrlParam = ', varUrlParam);
 
-
-const variableIdPromises = arr.map( async (inverter) => {
+return Promise.map(arr, async (facility) => {
   let requestData = {};
-    let irradianceObj = inverter.Parameters.filter( param => param.Name == 'Irradiance')[0];
-    let facilityPowerObj = inverter.Parameters.filter( param => param.Name == 'Power')[0];
-    let facilityEnergyObj = inverter.Parameters.filter( param => param.Name == 'Energy')[0];
+    let irradianceObj = facility.Parameters.filter( param => param.Name ==
+      'Irradiance')[0];
+    let facilityPowerObj = facility.Parameters.filter( param => param.Name ==
+      'Power')[0];
+    let facilityEnergyObj = facility.Parameters.filter( param => param.Name
+      == 'Energy')[0];
     if (powerOrIrradianceParam === 'power') {
       requestData = {
         "ParameterId": facilityPowerObj.Key.ParameterId,
-        "FacilityId": inverter.FacilityId
+        "FacilityId": facility.FacilityId
       }
     } else if(powerOrIrradianceParam == 'irradiance')  {
       requestData = {
         "ParameterId": irradianceObj.Key.ParameterId,
-        "FacilityId": inverter.FacilityId
+        "FacilityId": facility.FacilityId
       }
     } else if(powerOrIrradianceParam == 'energy')  {
       requestData = {
         "ParameterId": facilityEnergyObj.Key.ParameterId,
-        "FacilityId": inverter.FacilityId
+        "FacilityId": facility.FacilityId
       }
     }
-      try {
       const facVarIdResponse = await axios({
         method: 'post',
         url: varUrlParam,
@@ -309,40 +285,21 @@ const variableIdPromises = arr.map( async (inverter) => {
         respObj.VariableId = facVarIdResponse.data.Key.VariableId;
         respObj.Name = facVarIdResponse.data.Name;
         respObj.Unit = facVarIdResponse.data.Unit;
-        respObj.PeakPower = inverter.PeakPower;
+        respObj.PeakPower = facility.PeakPower;
       }
-      // console.log( 'In callFacilityVars, inverter = ', inverter);
+      // console.log( 'In callFacilityVars, facility = ', facility);
       // console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return  respObj;
 
-    } catch (error) {
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.log('\n\n\nError, request made, but server responded with ...', error.response.data);
-        console.log('\nError.response.status = ', error.response.status);
-        console.log('\nError.response.headers = ', error.response.headers);
-      } else if (error.request) {
-        // The request was made but no response was received `error.request` is
-        // an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log('\n\n\nError. Request made but no response recieved....', error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('\n\n\nError in setting up request....', error.message);
-      }
-      console.log('error.config = \n', error.config);
-    }
-  });
-  return Promise.all(variableIdPromises)
-    .then((rawValues) => {
-      let values = rawValues.filter(rawVal => rawVal)
-      console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
-      // console.log('from callFacilityVars, values = ', values)
-      return values;
-    }, function() {
-      console.log('stuff failed')
-    });
+  }, {concurrency: 50})
+      .then((rawValues) => {
+        let values = rawValues.filter(rawVal => rawVal)
+        console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
+        // console.log('from callFacilityVars, values = ', values)
+        return values;
+      }, function() {
+        console.log('stuff failed')
+      });
 }
 
 /* takes array of inverter info and options to specify which variableId nd
@@ -391,7 +348,6 @@ inverter level of plant, power or irradiance)  */
       }
     }
 
-    try {
       // console.log( 'In callInverterVars(), requestData = ', requestData)
       const variableIdResponse = await axios({
         method: 'post',
@@ -422,24 +378,6 @@ inverter level of plant, power or irradiance)  */
       // console.log('respObj = ', respObj)
       if (variableIdResponse.data) return respObj;
 
-    } catch (error) {
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        console.log('\nError, request made, but server responded with ...', error.response.data);
-        console.log('\nError.response.status = ', error.response.status);
-        console.log('\nError.response.headers = ', error.response.headers);
-      } else if (error.request) {
-        // The request was made but no response was received `error.request` is
-        // an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log('Error. Request made but no response recieved....', error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('Error in setting up request....', error.message);
-      }
-      console.log('error.config = \n', error.config);
-    }
   }, {concurrency: 50})
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
@@ -462,8 +400,7 @@ inverter level of plant, power or irradiance)  */
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
       //   customDataSourceId = variable.varId_Plant_Power;
-     Promise.map(arr, async (variable) => {
-      try {
+     Promise.map(arr, async (variable, index) => {
         // let customDataSourceId = '';
         // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
         //   customDataSourceId = variable.varId_Inv_Power
@@ -499,29 +436,10 @@ inverter level of plant, power or irradiance)  */
           VariableId: variable.VariableId,
           data: dataResponse.data // array of datapoints
           }
-        console.log(`# of data pnts for inverter w DeviceId:${variable.DeviceId} = ${resultObj.data.length}`)
-        totalDataPointsForInterval+=resultObj.data.length;
+        console.log(`# of data pnts for inverter w variableId:${variable.variableId} = ${resultObj.data.length}`)
+        totalDataPointsForInterval+=1;
         // maybe await would be better here, but it at least works with a simple return
         if ( dataResponse.data ) return resultObj;
-
-      } catch (error) {
-        if (error.response) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.log('\nError, request made, but server responded with ...', error.response.data);
-          console.log('\nError.response.status = ', error.response.status);
-          console.log('\nError.response.headers = ', error.response.headers);
-        } else if (error.request) {
-          // The request was made but no response was received `error.request` is
-          // an instance of XMLHttpRequest in the browser and an instance of
-          // http.ClientRequest in node.js
-          console.log('Error. Request made but no response recieved....', error.request);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.log('Error in setting up request....', error.message);
-        }
-        // console.log('error.config = \n', error.config);
-      }
     },{concurrency: 50})
       .then(rawValues => {
         let values = rawValues.filter( val => val);
@@ -546,14 +464,11 @@ inverter level of plant, power or irradiance)  */
   async function getBearerString (authUrlParam, credsParam) {
     console.log('creds = ', credsParam)
     let getTokenPromise = {}
-    try {
-      console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
-      getTokenPromise = await axios.post( authUrlParam, credsParam);
-    }	catch (error) {
-      console.error(error)
-    }
+    console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
+    getTokenPromise = await axios.post( authUrlParam, credsParam)
+      .catch((error)=> {throw new CustomErrorHandler({code: 107,
+        message:"getBearerString/getTokenPromise failed",error: error})});
     console.log( 'bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
-
     return 'Bearer '.concat(getTokenPromise.data.AccessToken);
   };
 
@@ -561,12 +476,11 @@ inverter level of plant, power or irradiance)  */
     console.log(someObject)
   }
 
-
   // spits out array of objects; each object has inverter info and a field for data
-  const inverterPowerData = ingest('inverter', 'power');
+  // const inverterPowerData = ingest('inverter', 'power');
   // console.log('inverterPowerData = ', inverterPowerData);
 
-  // const inverterIrradianceData = ingest('inverter','irradiance' );
+  const inverterIrradianceData = ingest('inverter','irradiance' );
   // console.log('inverterIrradianceData = ', inverterIrradianceData)
 
   // const plantPowerData = ingest('plant', 'power');

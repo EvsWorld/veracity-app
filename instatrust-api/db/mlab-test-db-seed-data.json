@@ -1,0 +1,85 @@
+{
+  "seedData": [{
+      "_id": "45xr8",
+      "asset": "171 MWp- 1 Axis Trackers- USA (California)",
+      "size": "171",
+      "location": "USA",
+      "region": "California",
+      "continent": "America",
+      "mountingSystem": "1 Axis Tracker",
+      "panelTech": "Polycrystalline",
+      "COD": "2018",
+      "startOfOperation": "04-20-2018",
+      "pic": "SolarAssetPic",
+      "peakPower": "171,720",
+      "nominalPower": "132,500",
+      "inverters": "106 x Power Electronics String Inverters 13,250 kVA",
+      "trackers": "25,440 x First Solar trackers",
+      "pvModules": "1,756,800 x First Solar 112kW Modules",
+      "latitude": "41.390205",
+      "longitude": "‎2.154007",
+      "revenueStream": "PPA",
+      "remainingYears": "10",
+      "Irradiance": "1000 W/m^2",
+      "timeZone": "(GMT-11:00) Pago Pago",
+      "score": [{
+          "performanceScore": "High",
+          "performanceRatio": "",
+          "availability": "",
+          "powerSteadiness": "",
+          "inverterReliability": "",
+          "repairResponsiveness": ""
+        },
+
+        {
+          "dataQualityScore": "High",
+          "dataAvailability": "",
+          "irradianceSensorsQuality": "",
+          "periodOfData": "",
+          "communicationReliability": ""
+        }
+      ]
+    },
+    {
+      "_id": "45xr9",
+      "asset": "171 MWp- 1 Axis Trackers- USA (California)",
+      "size": "171",
+      "location": "USA",
+      "region": "California",
+      "continent": "America",
+      "mountingSystem": "1 Axis Tracker",
+      "panelTech": "Polycrystalline",
+      "COD": "2018",
+      "startOfOperation": "04-20-2018",
+      "pic": "SolarAssetPic",
+      "peakPower": "171,720",
+      "nominalPower": "132,500",
+      "inverters": "106 x Power Electronics String Inverters 13,250 kVA",
+      "trackers": "25,440 x First Solar trackers",
+      "pvModules": "1,756,800 x First Solar 112kW Modules",
+      "latitude": "41.390205",
+      "longitude": "‎2.154007",
+      "revenueStream": "PPA",
+      "remainingYears": "10",
+      "Irradiance": "1000 W/m^2",
+      "timeZone": "(GMT-11:00) Pago Pago",
+      "visible": true,
+      "score": [{
+          "performanceScore": "High",
+          "performanceRatio": "",
+          "availability": "",
+          "powerSteadiness": "",
+          "inverterReliability": "",
+          "repairResponsiveness": ""
+        },
+        {
+          "dataQualityScore": "High",
+          "dataAvailability": "",
+          "irradianceSensorsQuality": "",
+          "periodOfData": "",
+          "communicationReliability": ""
+        }
+      ]
+    }
+  ]
+}
