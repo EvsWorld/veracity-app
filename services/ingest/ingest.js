@@ -486,8 +486,22 @@ inverter level of plant, power or irradiance)  */
   // const plantPowerData = ingest('plant', 'power');
   // console.log('plantPowerData = ', plantPowerData);
 
-  // const plantIrradianceData = ingest('plant', 'irradiance');
   // console.log('plantIrradienceData = ', plantIrradianceData);
 
   // Just an experiment
-  // const plantEnergyData = ingest('plant', 'energy');
+	// const plantEnergyData = ingest('plant', 'energy');
+
+	/* Plan for loading in and aggregating all historical data (1 time process)
+	Run ingest for all time (calling data and saving in in db) then loop over
+	facilities calling the python script (which does aggregation for historical
+	data) then outputs back to ingest. Ingest then takes the output of the
+	aggregated kpis for that facility, then save them back in the db in that
+	facility (
+	*/
+
+  // Plan for continuous operation (taking in each months data)
+  // this script (which calls raw data for the month for each plant, saves it to db)
+  // should run, then I should loop over each plant id, and call the python
+  // script which will pull data from the db for just that facility, then accept
+  // the output of the aggregated kpis for that facility, then save them back in
+	// the db in that facility (bc all kpis are facility level)
