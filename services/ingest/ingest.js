@@ -75,7 +75,10 @@ const baseUrl = process.env.BASE_URL_DEMO;
 
 console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  authUrl, '\nbaseUrl = ', baseUrl);
-  /**
+  /// NOTE: This is another way to do the pattern I'm using:
+// https: //hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
+
+/**
  * @typedef localObject
  * @property {string} DeviceId True if the token is valid.
  * @property {string} Name description
@@ -83,16 +86,14 @@ console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  * @property {string} VariableId description
  * @property {string} data description
  *
- * spits out array of objects; each object has inverter info and a field for data
- * @param {string} inverterOrPlant
- * @param {string} powerOrIrradiance
+ * @param  {string} inverterOrPlant
+ * @param  {string} powerOrIrradiance
+ * @param  {string} [optionalFacId] - specifies if only a single specific
+ * facility is desired
  * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
  * timestamped data at eith plant or inverter level, and power or irradiance
  */
-// NOTE: This is another way to do the pattern I'm using:
-// https: //hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
-
-const ingest = async (inverterOrPlant, powerOrIrradiance) => {
+const ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = { 'username': username, 'password': password }
@@ -100,7 +101,7 @@ const ingest = async (inverterOrPlant, powerOrIrradiance) => {
     console.log('authString = ', authString)
 
     // ********   1. get facility data
-    const facilityIdsResponse = await axios( facilitiesUrl, { headers: {
+    const facilityIdsResponse = optionalFacId ? [optionalFacId] : await axios( facilitiesUrl, { headers: {
       Authorization: authString} });
 
     // make array of facility ids
@@ -227,7 +228,7 @@ and return array of objects with variableIds for the data specified (eg
 inverter level of plant, power or irradiance)  */
 /**
  *
- * @param {Array} arr - facilities with data needed to get variableIds
+ * @param {array} arr - facilities with data needed to get variableIds
  * @param {string} authStringParam
  * @param {string} inverterOrPlantParam
  * @param {string} powerOrIrradianceParam
@@ -308,7 +309,7 @@ and return array of objects with variableIds for the data specified (eg
 inverter level of plant, power or irradiance)  */
 /**
  *
- * @param {Array} arr - inverters with data needed to get variableIds
+ * @param {array} arr - inverters with data needed to get variableIds
  * @param {string} authStringParam
  * @param {string} inverterOrPlantParam
  * @param {string} powerOrIrradianceParam
@@ -496,12 +497,14 @@ inverter level of plant, power or irradiance)  */
 	facilities calling the python script (which does aggregation for historical
 	data) then outputs back to ingest. Ingest then takes the output of the
 	aggregated kpis for that facility, then save them back in the db in that
-	facility (
+	facility document.
 	*/
 
   // Plan for continuous operation (taking in each months data)
   // this script (which calls raw data for the month for each plant, saves it to db)
-  // should run, then I should loop over each plant id, and call the python
+  // should run, then I should lo	op over each plant id, and call the python
   // script which will pull data from the db for just that facility, then accept
   // the output of the aggregated kpis for that facility, then save them back in
 	// the db in that facility (bc all kpis are facility level)
+
+// or there is the option to get all the data for each facility, one at a time.
