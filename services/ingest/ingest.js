@@ -24,13 +24,35 @@ console.log('this is from console.log');
 process.stdout.write('this is from process.stdout.write\n')
 
 // ******** Database Config (will go in another file) ********
-// const mongoose = require("mongoose");
-// mongoose.Promise = global.Promise;
-// mongoose.connect(process.env.COSMOSDB_URI);
-// const db = mongoose.connection;
-// db.on('error', console.error.bind(console, 'connection error:'));
-// db.once('open', function() {
-  // console.log(` we're connected!`);
+// const Sequelize = require('sequelize');
+// const sequelize = new Sequelize('database', 'username', 'password', {
+//   host: 'localhost',
+//   dialect: 'mysql'|'sqlite'|'postgres'|'mssql',
+//   operatorsAliases: false,
+
+//   pool: {
+//     max: 5,
+//     min: 0,
+//     acquire: 30000,
+//     idle: 10000
+//   },
+
+//   // SQLite only
+//   storage: 'path/to/database.sqlite'
+// });
+
+// // Or you can simply use a connection uri
+// const sequelize = new Sequelize('postgres://user:pass@example.com:5432/dbname');
+
+//   // test our connection
+//   sequelize
+//   .authenticate()
+//   .then(() => {
+//     console.log('Connection has been established successfully.');
+//   })
+//   .catch(err => {
+//     console.error('Unable to connect to the database:', err);
+//   });
 
 
   /* After connecting to the database in our app.js we need to define our Schema.
