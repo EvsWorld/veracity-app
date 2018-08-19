@@ -110,7 +110,7 @@ console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  *
  * @param  {string} inverterOrPlant
  * @param  {string} powerOrIrradiance
- * @param  {string} [optionalFacId] - specifies if only a single specific
+ * @param  {number} [optionalFacId] - specifies if only a single specific
  * facility is desired
  * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
  * timestamped data at eith plant or inverter level, and power or irradiance
@@ -123,11 +123,14 @@ const ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
     console.log('authString = ', authString)
 
     // ********   1. get facility data
-    const facilityIdsResponse = optionalFacId ? [optionalFacId] : await axios( facilitiesUrl, { headers: {
+    const facilityIdsResponse = await axios( facilitiesUrl, { headers: {
       Authorization: authString} });
-
+    const facilityIdsData = facilityIdsResponse.data;
+    const oneFacilityData = facilityIdsData.filter( facility => {
+      return ( facility.Id === optionalFacId)
+    })
+    const facilities = optionalFacId ? oneFacilityData : facilityIdsData;
     // make array of facility ids
-    const facilities = facilityIdsResponse.data;
     const facilityIdArray = [];
     facilities.forEach( facility => {
       if (facility && facility.Parameters[0]) {
@@ -139,14 +142,14 @@ const ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
     let invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
       .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"invertersArray/getInverterInfo failed",error: error})});
     // variablesIds become an array of objects which have a VariableId key
-    // console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
+    console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
     let variableIds = (inverterOrPlant === 'inverter') ?
         await callInverterVars(invertersArray, authString, inverterOrPlant, powerOrIrradiance)
       : await callFacilityVars(facilities, authString, inverterOrPlant, powerOrIrradiance)
-    // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
+    console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
     let dataArray =  await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
-      .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"dataArray/getValues failed",error: error})});
+      .catch((error) => {throw new CustomErrorHandler({code: 104, message:"dataArray/getValues failed",error: error})});
 
     // console.log('dataArray = ', dataArray)
     return await dataArray;
@@ -500,7 +503,7 @@ inverter level of plant, power or irradiance)  */
   }
 
   // spits out array of objects; each object has inverter info and a field for data
-  const inverterPowerData = ingest('inverter', 'power');
+  const inverterPowerData = ingest('inverter', 'power', 6);
   // console.log('inverterPowerData = ', inverterPowerData);
 
   // const inverterIrradianceData = ingest('inverter','irradiance' );
