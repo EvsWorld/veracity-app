@@ -95,8 +95,8 @@ const password = process.env.PASSWORD_DEMO;
 const authUrl = process.env.AUTH_URL_DEMO;
 const baseUrl = process.env.BASE_URL_DEMO;
 
-console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
- authUrl, '\nbaseUrl = ', baseUrl);
+// console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
+//  authUrl, '\nbaseUrl = ', baseUrl);
   /// NOTE: This is another way to do the pattern I'm using:
 // https: //hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
 
@@ -115,12 +115,12 @@ console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
  * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
  * timestamped data at eith plant or inverter level, and power or irradiance
  */
-const ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
+let ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = { 'username': username, 'password': password }
     const authString = await getBearerString(authUrl, creds);
-    console.log('authString = ', authString)
+    // console.log('authString = ', authString)
 
     // ********   1. get facility data
     const facilityIdsResponse = await axios( facilitiesUrl, { headers: {
@@ -187,7 +187,7 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
         .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
       if (response.data) return response.data // array of inverters
 
-  }, {concurrency: 5})
+  }, {concurrency: 2})
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)
       return values;
@@ -261,7 +261,6 @@ inverter level of plant, power or irradiance)  */
   async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
    const varUrlParam =
     `${baseUrl}/horizon/parametertovariable/facilityparameter`
-  console.log('varUrlParam = ', varUrlParam);
 
 return Promise.map(arr, async (facility) => {
   let requestData = {};
@@ -273,18 +272,18 @@ return Promise.map(arr, async (facility) => {
      === 'Energy')[0];
     if (powerOrIrradianceParam === 'power') {
       requestData = {
-        "ParameterId": facilityPowerObj.Key.ParameterId,
-        "FacilityId": facility.FacilityId
+        "FacilityId": facility.Id,
+        "ParameterId": facilityPowerObj.Key.ParameterId
       }
     } else if(powerOrIrradianceParam === 'irradiance')  {
       requestData = {
-        "ParameterId": irradianceObj.Key.ParameterId,
-        "FacilityId": facility.FacilityId
+        "FacilityId": facility.FacilityId,
+        "ParameterId": irradianceObj.Key.ParameterId
       }
     } else if(powerOrIrradianceParam === 'energy')  {
       requestData = {
-        "ParameterId": facilityEnergyObj.Key.ParameterId,
-        "FacilityId": facility.FacilityId
+        "FacilityId": facility.FacilityId,
+        "ParameterId": facilityEnergyObj.Key.ParameterId
       }
     }
       const facVarIdResponse = await axios({
@@ -314,14 +313,11 @@ return Promise.map(arr, async (facility) => {
         respObj.PeakPower = facility.PeakPower;
       }
       // console.log( 'In callFacilityVars, facility = ', facility);
-      // console.log('respObj = ', respObj)
+      console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return  respObj;
-
-  }, {concurrency: 5})
-      .then((rawValues) => {
-        let values = rawValues.filter(rawVal => rawVal)
-        console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
-        // console.log('from callFacilityVars, values = ', values)
+  }, {concurrency: 2})
+      .then((values) => {
+        console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
         return values;
       }, function() {
         console.log('stuff failed')
@@ -347,10 +343,11 @@ inverter level of plant, power or irradiance)  */
     let requestData = {};
     if (inverterOrPlantParam === 'plant') {
       if (powerOrIrradianceParam === 'power') {
-      //   requestData = {
-      //     "ParameterId": 2,
-      //     "FacilityId": inverter.FacilityId
-      //   }
+        requestData = {
+          "ParameterId": 2,
+          "FacilityId": inverter.FacilityId
+        }
+      // Pretty sure this is never needed
       // } else if(powerOrIrradianceParam === 'irradiance')  {
       //   requestData = {
       //     "ParameterId": 8,
@@ -364,12 +361,13 @@ inverter level of plant, power or irradiance)  */
           "ParameterId": inverter.ParameterId_power,
           "FacilityId": inverter.FacilityId
         }
-      } else if (powerOrIrradianceParam === 'irradiance') {
-        requestData = {
-          "DeviceId": inverter.DeviceId_irradiance,
-          "ParameterId": inverter.ParameterId_irradiance,
-          "FacilityId": inverter.FacilityId
-        }
+      // pretty sure this is never needed
+      // } else if (powerOrIrradianceParam === 'irradiance') {
+      //   requestData = {
+      //     "DeviceId": inverter.DeviceId_irradiance,
+      //     "ParameterId": inverter.ParameterId_irradiance,
+      //     "FacilityId": inverter.FacilityId
+      //   }
       }
     }
 
@@ -403,11 +401,11 @@ inverter level of plant, power or irradiance)  */
       // console.log('respObj = ', respObj)
       if (variableIdResponse.data) return respObj;
 
-  }, {concurrency: 5})
+  }, {concurrency: 2})
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
       let values = rawValues.filter(rawVal => rawVal)
-      console.log(`The Variable ids for ${inverterOrPlant} = `, values)
+      console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function() {
       console.log('stuff failed')
@@ -421,7 +419,6 @@ inverter level of plant, power or irradiance)  */
    */
    async function getValues(arr, authStringParam) {
     console.log('Input to getValues() = ', JSON.stringify( arr, null, 2 ))
-    let totalDataPointsForInterval = 0;
     //  console.log( 'Array input to callFariables = ', arr);
     const dataListUrl = `${baseUrl}/DataList`
       //   customDataSourceId = variable.varId_Plant_Power;
@@ -454,24 +451,21 @@ inverter level of plant, power or irradiance)  */
           return dp;
         })
         let resultObj = {
-          FacilityId: variable.FacilityId,
-          DeviceId: variable.DeviceId,
+          // DeviceId: variable.DeviceId,
           Name: variable.Name,
+          FacilityId: variable.FacilityId,
+          // VariableId: variable.VariableId,
           Unit: variable.Unit,
-          VariableId: variable.VariableId,
-          data: dataResponse.data // array of datapoints
+          data: dataResponse.data // array of datapoints for inverter for time period
           }
-        console.log(`# of data pnts for inverter w variableId:${variable.variableId} = ${resultObj.data.length}`)
-        totalDataPointsForInterval+=1;
+        // console.log(`# of data pnts for inverter w variableId: ${variable.VariableId} = ${resultObj.data.length}`)
         // maybe await would be better here, but it at least works with a simple return
         if ( dataResponse.data ) return resultObj;
-    },{concurrency: 5})
+    },{concurrency: 2})
       .then(rawValues => {
         let values = rawValues.filter( val => val);
         // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
-        console.log('From getValues(), totalDataPointsForInterval = ',
-        totalDataPointsForInterval);
-        // console.log('values = ', JSON.stringify(values, null, 2));
+        console.log('From getValues(), values = ', values);
         return values;
       }, function() {
         console.log('stuff failed in getValues')
@@ -487,9 +481,9 @@ inverter level of plant, power or irradiance)  */
    * @returns {Promise.<string, Error>} - Bearer token
    */
   async function getBearerString (authUrlParam, credsParam) {
-    console.log('creds = ', credsParam)
+    // console.log('creds = ', credsParam)
     let getTokenPromise = {}
-    console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
+    // console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
     getTokenPromise = await axios.post( authUrlParam, credsParam)
       .catch((error)=> {throw new CustomErrorHandler({code: 107,
         message:"getBearerString/getTokenPromise failed",error: error})});
@@ -501,17 +495,23 @@ inverter level of plant, power or irradiance)  */
     console.log(someObject)
   }
 
-  // spits out array of objects; each object has inverter info and a field for data
-  const inverterPowerData = ingest('inverter', 'power', 6);
-  // console.log('inverterPowerData = ', inverterPowerData);
 
-  // const inverterIrradianceData = ingest('inverter','irradiance' );
-  // console.log('inverterIrradianceData = ', inverterIrradianceData)
+  // TODO: put each of these (ingestPowerData,
+  // powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
+  // object
 
-  // const plantPowerData = ingest('plant', 'power');
-  // console.log('plantPowerData = ', plantPowerData);
+  const ingestPowerData = inverterOrPlant => ingest(inverterOrPlant, 'power', 6);
 
-  // console.log('plantIrradienceData = ', plantIrradianceData);
+  // const powerAtInverterLevel = ingestPowerData('inverter')
+  // console.log( 'powerAtInverterLevel =', powerAtInverterLevel)
+
+  const powerAtPlantLevel = ingestPowerData('plant')
+  console.log( 'powerAtPlantLevel =', powerAtPlantLevel)
+
+  // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6)
+
+  // console.log( 'irradianceAtPlantLevel =', irradianceAtPlantLevel)
+
 
   // Just an experiment
 	// const plantEnergyData = ingest('plant', 'energy');
