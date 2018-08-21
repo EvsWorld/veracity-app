@@ -1,5 +1,8 @@
 #! /usr/bin/env node
-require('dotenv').config({path:'/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'});
+
+require('dotenv').config({
+  path: '/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'
+});
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 
 const Promise = require('bluebird');
@@ -8,8 +11,18 @@ const axios = require('axios');
 // logger example
 var log4js = require('log4js');
 log4js.configure({
-  appenders: { cheese: { type: 'file', filename: 'cheese.log' } },
-  categories: { default: { appenders: ['cheese'], level: 'error' } }
+  appenders: {
+    cheese: {
+      type: 'file',
+      filename: 'cheese.log'
+    }
+  },
+  categories: {
+    default: {
+      appenders: ['cheese'],
+      level: 'error'
+    }
+  }
 });
 
 const logger = log4js.getLogger('cheese');
@@ -55,20 +68,20 @@ process.stdout.write('this is from process.stdout.write\n')
 //   });
 
 
-  /* After connecting to the database in our app.js we need to define our Schema.
-  Here are the lines you need to add to the app.js. */
-  /* const assetSchema = new mongoose.Schema({
-    assetName: String,
-    assetAddress: String,
-    assetCapacity: Number,
-    assetKPIExample1: Number,
-    assetKPIExample2: Number
-  }); */
+/* After connecting to the database in our app.js we need to define our Schema.
+Here are the lines you need to add to the app.js. */
+/* const assetSchema = new mongoose.Schema({
+  assetName: String,
+  assetAddress: String,
+  assetCapacity: Number,
+  assetKPIExample1: Number,
+  assetKPIExample2: Number
+}); */
 
-  /* Once we have built our Schema, we need to create a model from it. I am going
-  to call my model “DataInput”. Here is the line you will add next to create our
-  model. */
-  // const Asset = mongoose.model("Asset", assetSchema);
+/* Once we have built our Schema, we need to create a model from it. I am going
+to call my model “DataInput”. Here is the line you will add next to create our
+model. */
+// const Asset = mongoose.model("Asset", assetSchema);
 
 // });
 
@@ -77,8 +90,6 @@ process.stdout.write('this is from process.stdout.write\n')
   if (err) return console.error(err);
   console.log(assets);
 }) */ // ************** End Database Config **********************
-
-
 
 console.log('you. are. AWESOME!');
 
@@ -97,7 +108,7 @@ const baseUrl = process.env.BASE_URL_DEMO;
 
 // console.log('username = ', username, '\npassword = ', password, '\nauthUrl = ',
 //  authUrl, '\nbaseUrl = ', baseUrl);
-  /// NOTE: This is another way to do the pattern I'm using:
+/// NOTE: This is another way to do the pattern I'm using:
 // https: //hackernoon.com/concurrency-control-in-promises-with-bluebird-977249520f23
 
 /**
@@ -115,91 +126,104 @@ const baseUrl = process.env.BASE_URL_DEMO;
  * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
  * timestamped data at eith plant or inverter level, and power or irradiance
  */
-let ingest = async (inverterOrPlant, powerOrIrradiance, optionalFacId) => {
+async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
-    const creds = { 'username': username, 'password': password }
+    const creds = {
+      'username': username,
+      'password': password
+    }
     const authString = await getBearerString(authUrl, creds);
     // console.log('authString = ', authString)
 
     // ********   1. get facility data
-    const facilityIdsResponse = await axios( facilitiesUrl, { headers: {
-      Authorization: authString} });
+    const facilityIdsResponse = await axios(facilitiesUrl, {
+      headers: {
+        Authorization: authString
+      }
+    });
     const facilityIdsData = facilityIdsResponse.data;
-    const oneFacilityData = facilityIdsData.filter( facility => {
-      return ( facility.Id === optionalFacId)
+    const oneFacilityData = facilityIdsData.filter(facility => {
+      return (facility.Id === optionalFacId)
     })
     const facilities = optionalFacId ? oneFacilityData : facilityIdsData;
     // make array of facility ids
     const facilityIdArray = [];
-    facilities.forEach( facility => {
+    facilities.forEach(facility => {
       if (facility && facility.Parameters[0]) {
-      facilityIdArray.push(facility.Parameters[0].Key.FacilityId) ;
-    }});
+        facilityIdArray.push(facility.Parameters[0].Key.FacilityId);
+      }
+    });
     // to have all info for each inverter
     // based on inverterOrPlant and powerOrIrradiance, we call for the
     // appropriate parameterId
     let invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
-      .catch((error)=> {throw new CustomErrorHandler({code: 104, message:"invertersArray/getInverterInfo failed",error: error})});
+      .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "invertersArray/getInverterInfo failed", error: error }) });
     // variablesIds become an array of objects which have a VariableId key
     console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
     let variableIds = (inverterOrPlant === 'inverter') ?
-        await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance)
-      : await callFacilityVars(facilities, authString, 'plant', powerOrIrradiance)
+      await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance) :
+      await callFacilityVars(facilities, authString, 'plant', powerOrIrradiance)
     console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
-    let dataArray = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
-      .catch((error) => {throw new CustomErrorHandler({code: 104, message:"dataArray/getValues failed",error: error})});
 
-    // console.log('dataArray = ', dataArray)
-    return await dataArray;
+    const valuesFromIngest = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
+      .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "dataArray/getValues failed", error: error }) });
+    console.log(' valuesFromIngest = ',  await valuesFromIngest)
+    return await valuesFromIngest;
+
 
   } catch (error) {
-      if (error.response) {
-    // The request was made and the server responded with a status code that
-    // falls out of the range of 2xx
-        console.log('\nError, request made, but server responded with ...', error.response.data);
-        console.log('\nError.response.status = ', error.response.status);
-        console.log('\nError.response.headers = ', error.response.headers);
-      } else if (error.request) {
-        // The request was made but no response was received `error.request` is
-        // an instance of XMLHttpRequest in the browser and an instance of
-        // http.ClientRequest in node.js
-        console.log('Error. Request made but no response received....', error.request);
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.log('Error in setting up request....', error.message);
-      }
-      console.log('error.config = \n', error.config);
-    console.error('\n\n\n console.error = \n',error)
+    if (error.response) {
+      // The request was made and the server responded with a status code that
+      // falls out of the range of 2xx
+      console.log('\nError, request made, but server responded with ...', error.response.data);
+      console.log('\nError.response.status = ', error.response.status);
+      console.log('\nError.response.headers = ', error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received `error.request` is
+      // an instance of XMLHttpRequest in the browser and an instance of
+      // http.ClientRequest in node.js
+      console.log('Error. Request made but no response received....', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.log('Error in setting up request....', error.message);
+    }
+    console.log('error.config = \n', error.config);
+    console.error('\n\n\n console.error = \n', error)
   }
 }
 
-  // make array of device info, for all facilities
-async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
- const invertersArrayNotFlat = await Promise.map(facilityIdArray, async (facility) => {
-    /*  const devicesByTypeInverterUrl =
-    `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
-    */
-   const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
-      const response = await axios( invertersUrl, { headers: {
-      'Authorization': authStringParam} } )
-        .catch((error)=> {throw new CustomErrorHandler({code: 101, message:"invertersArrayNotFlat failed",error: error})});
+// make array of device info, for all facilities
+async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+  const invertersArrayNotFlat = await Promise.map(facilityIdArray, async (facility) => {
+      /*  const devicesByTypeInverterUrl =
+      `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
+      */
+      const invertersUrl = `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
+      const response = await axios(invertersUrl, {
+          headers: {
+            'Authorization': authStringParam
+          }
+        })
+        .catch((error) => { throw new CustomErrorHandler({ code: 101, message: "invertersArrayNotFlat failed", error: error }) });
       if (response.data) return response.data // array of inverters
 
-  }, {concurrency: 2})
+    }, {
+      concurrency: 2
+    })
     .then((rawValues) => {
       let values = rawValues.filter(rawVal => rawVal)
       return values;
-    }, function() {
+    }, function () {
       console.log('stuff failed in getInverterInfo()' +
-      'invertersArrayNotFlat');
-  });
+        'invertersArrayNotFlat');
+    });
   // nested Arrays
-  let invertersArrayAndZeros = [].concat.apply([],invertersArrayNotFlat);
+  let invertersArrayAndZeros = [].concat.apply([], invertersArrayNotFlat);
 
   // filter out facilitites that don't have inverters in them
-  const invertersArrayFiltered = invertersArrayAndZeros.filter( inverter =>  {
+  const invertersArrayFiltered = invertersArrayAndZeros.filter(inverter => {
     // console.log( 'inverter.Parameters.length = ', inverter.Parameters.length);
     return inverter.Parameters.length > 0
   });
@@ -207,15 +231,15 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
 
   // TODO: find a way to bring along all of these properties to the next array
   // of object with the variableids
-  return invertersArrayFiltered.map( inverter => {
+  return invertersArrayFiltered.map(inverter => {
     // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
     // indexO);
-    let facilityIrradianceObj = inverter.Parameters.filter( param => param.Name === 'Irradiance')[0];
-    let plantRatedPowerObj = inverter.Descriptions.filter( param => param.Name === 'PlantRated_Power')[0];
-    let facilityPowerObj = inverter.Parameters.filter( param => param.Name === 'Power')[0];
-    let peakPowerObj = inverter.Descriptions.filter( param => param.Name === 'Peak Power')[0];
-    let powerObj = inverter.Parameters.filter( param => param.Name === 'Power')[0];
-    let irradianceObj = inverter.Parameters.filter( param => param.Name === 'Assigned Irradiance')[0];
+    let facilityIrradianceObj = inverter.Parameters.filter(param => param.Name === 'Irradiance')[0];
+    let plantRatedPowerObj = inverter.Descriptions.filter(param => param.Name === 'PlantRated_Power')[0];
+    let facilityPowerObj = inverter.Parameters.filter(param => param.Name === 'Power')[0];
+    let peakPowerObj = inverter.Descriptions.filter(param => param.Name === 'Peak Power')[0];
+    let powerObj = inverter.Parameters.filter(param => param.Name === 'Power')[0];
+    let irradianceObj = inverter.Parameters.filter(param => param.Name === 'Assigned Irradiance')[0];
     // TODO: we have COM status here if we want to get that too.
     // add properties you need from the inverter level, then return that
     // object to map the whole object; this will build the 'invertersArray'
@@ -225,10 +249,10 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
     // TODO: do this for inverter level ones so we dont get error when call function with 'plant'
     let tempObj = {
       ParameterId_facility_irradiance: facilityIrradianceObj ?
-          facilityIrradianceObj.Key.ParameterId
-        : null,
-      ParameterId_facility_power: facilityPowerObj ? facilityPowerObj.Key.ParameterId
-        : null,
+        facilityIrradianceObj.Key.ParameterId :
+        null,
+      ParameterId_facility_power: facilityPowerObj ? facilityPowerObj.Key.ParameterId :
+        null,
       DeviceId_irradiance: irradianceObj.Key.DeviceId,
       ParameterId_irradiance: irradianceObj.Key.ParameterId,
 
@@ -237,11 +261,11 @@ async function getInverterInfo (facilityIdArray, authStringParam, inverterOrPlan
 
       FacilityId: inverter.FacilityId,
       PeakPower: peakPowerObj.Value,
-      ParametersLevelName: (powerObj.Name === 'power') ? powerObj.Name
-                                                  : irradianceObj.ParameterType,
+      ParametersLevelName: (powerObj.Name === 'power') ? powerObj.Name :
+        irradianceObj.ParameterType,
       ParameterType: powerObj.ParameterType,
-      Units: (powerOrIrradianceParam === 'power') ? powerObj.Units
-                                                          : irradianceObj.Units,
+      Units: (powerOrIrradianceParam === 'power') ? powerObj.Units :
+        irradianceObj.Units,
       Stooge: 'TheStooge'
     }
     return tempObj;
@@ -258,46 +282,48 @@ inverter level of plant, power or irradiance)  */
  * @param {string} inverterOrPlantParam
  * @param {string} powerOrIrradianceParam
  */
-  async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-   const varUrlParam =
+async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+  const varUrlParam =
     `${baseUrl}/horizon/parametertovariable/facilityparameter`
 
-return Promise.map(arr, async (facility) => {
-  let requestData = {};
-    let irradianceObj = facility.Parameters.filter( param => param.Name ==
-      'Irradiance')[0];
-    let facilityPowerObj = facility.Parameters.filter( param => param.Name ==
-      'Power')[0];
-    let facilityEnergyObj = facility.Parameters.filter( param => param.Name
-     === 'Energy')[0];
-    if (powerOrIrradianceParam === 'power') {
-      requestData = {
-        "FacilityId": facility.Id,
-        "ParameterId": facilityPowerObj.Key.ParameterId
+  return Promise.map(arr, async (facility) => {
+      let requestData = {};
+      let irradianceObj = facility.Parameters.filter(param => param.Name ==
+        'Irradiance')[0];
+      let facilityPowerObj = facility.Parameters.filter(param => param.Name ==
+        'Power')[0];
+      let facilityEnergyObj = facility.Parameters.filter(param => param.Name ===
+        'Energy')[0];
+      if (powerOrIrradianceParam === 'power') {
+        requestData = {
+          "FacilityId": facility.Id,
+          "ParameterId": facilityPowerObj.Key.ParameterId
+        }
+      } else if (powerOrIrradianceParam === 'irradiance') {
+        requestData = {
+          "FacilityId": facility.FacilityId,
+          "ParameterId": irradianceObj.Key.ParameterId
+        }
+      } else if (powerOrIrradianceParam === 'energy') {
+        requestData = {
+          "FacilityId": facility.FacilityId,
+          "ParameterId": facilityEnergyObj.Key.ParameterId
+        }
       }
-    } else if(powerOrIrradianceParam === 'irradiance')  {
-      requestData = {
-        "FacilityId": facility.FacilityId,
-        "ParameterId": irradianceObj.Key.ParameterId
-      }
-    } else if(powerOrIrradianceParam === 'energy')  {
-      requestData = {
-        "FacilityId": facility.FacilityId,
-        "ParameterId": facilityEnergyObj.Key.ParameterId
-      }
-    }
       const facVarIdResponse = await axios({
-        method: 'post',
-        url: varUrlParam,
-        data: requestData,
-        headers: { 'Authorization': authStringParam }
-      })
-      .catch((error)=> {throw new CustomErrorHandler({code: 105, message:"facVarIdResponse failed",error: error})});
+          method: 'post',
+          url: varUrlParam,
+          data: requestData,
+          headers: {
+            'Authorization': authStringParam
+          }
+        })
+        .catch((error) => { throw new CustomErrorHandler({ code: 105, message: "facVarIdResponse failed", error: error }) });
 
       let respObj = {};
       // in this respObj, we must get all properties from previous request in
       // here
-     // it seems here we can only call for one variable at a time.
+      // it seems here we can only call for one variable at a time.
       // or I could make this object conditional, depending on what argument is
       // passed to powerOrIrradiance
       if (facVarIdResponse.data) {
@@ -314,14 +340,16 @@ return Promise.map(arr, async (facility) => {
       }
       // console.log( 'In callFacilityVars, facility = ', facility);
       console.log('respObj = ', respObj)
-      if (facVarIdResponse.data) return  respObj;
-  }, {concurrency: 2})
-      .then((values) => {
-        console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
-        return values;
-      }, function() {
-        console.log('stuff failed')
-      });
+      if (facVarIdResponse.data) return respObj;
+    }, {
+      concurrency: 2
+    })
+    .then((values) => {
+      console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
+      return values;
+    }, function () {
+      console.log('stuff failed')
+    });
 }
 
 /* takes array of inverter info and options to specify which variableId nd
@@ -335,50 +363,52 @@ inverter level of plant, power or irradiance)  */
  * @param {string} inverterOrPlantParam
  * @param {string} powerOrIrradianceParam
  */
- async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
-   const varUrlParam = (inverterOrPlantParam === 'inverter') ?
-   `${baseUrl}/horizon/parametertovariable/deviceparameter` :
+async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+  const varUrlParam = (inverterOrPlantParam === 'inverter') ?
+    `${baseUrl}/horizon/parametertovariable/deviceparameter` :
     `${baseUrl}/parametertovariable/facilityparameter`
   return Promise.map(arr, async (inverter) => {
-    let requestData = {};
-    if (inverterOrPlantParam === 'plant') {
-      if (powerOrIrradianceParam === 'power') {
-        requestData = {
-          "ParameterId": 2,
-          "FacilityId": inverter.FacilityId
+      let requestData = {};
+      if (inverterOrPlantParam === 'plant') {
+        if (powerOrIrradianceParam === 'power') {
+          requestData = {
+            "ParameterId": 2,
+            "FacilityId": inverter.FacilityId
+          }
+          // Pretty sure this is never needed
+          // } else if(powerOrIrradianceParam === 'irradiance')  {
+          //   requestData = {
+          //     "ParameterId": 8,
+          //     "FacilityId": inverter.FacilityId
+          //   }
         }
-      // Pretty sure this is never needed
-      // } else if(powerOrIrradianceParam === 'irradiance')  {
-      //   requestData = {
-      //     "ParameterId": 8,
-      //     "FacilityId": inverter.FacilityId
-      //   }
-      }
-    } else if (inverterOrPlantParam === 'inverter') {
-      if (powerOrIrradianceParam === 'power') {
-        requestData = {
-          "DeviceId": inverter.DeviceId_power,
-          "ParameterId": inverter.ParameterId_power,
-          "FacilityId": inverter.FacilityId
+      } else if (inverterOrPlantParam === 'inverter') {
+        if (powerOrIrradianceParam === 'power') {
+          requestData = {
+            "DeviceId": inverter.DeviceId_power,
+            "ParameterId": inverter.ParameterId_power,
+            "FacilityId": inverter.FacilityId
+          }
+          // pretty sure this is never needed
+          // } else if (powerOrIrradianceParam === 'irradiance') {
+          //   requestData = {
+          //     "DeviceId": inverter.DeviceId_irradiance,
+          //     "ParameterId": inverter.ParameterId_irradiance,
+          //     "FacilityId": inverter.FacilityId
+          //   }
         }
-      // pretty sure this is never needed
-      // } else if (powerOrIrradianceParam === 'irradiance') {
-      //   requestData = {
-      //     "DeviceId": inverter.DeviceId_irradiance,
-      //     "ParameterId": inverter.ParameterId_irradiance,
-      //     "FacilityId": inverter.FacilityId
-      //   }
       }
-    }
 
-      console.log( 'In callInverterVars(), requestData = ', requestData)
+      console.log('In callInverterVars(), requestData = ', requestData)
       const variableIdResponse = await axios({
-        method: 'post',
-        url: varUrlParam,
-        data: requestData,
-        headers: { 'Authorization': authStringParam }
-      })
-      .catch((error)=> {throw new CustomErrorHandler({code: 102, message:"variableIdResponse failed",error: error})});
+          method: 'post',
+          url: varUrlParam,
+          data: requestData,
+          headers: {
+            'Authorization': authStringParam
+          }
+        })
+        .catch((error) => { throw new CustomErrorHandler({ code: 102, message: "variableIdResponse failed", error: error }) });
 
       // in this respObj, we must get all properties from previous request in
       // here
@@ -401,134 +431,162 @@ inverter level of plant, power or irradiance)  */
       // console.log('respObj = ', respObj)
       if (variableIdResponse.data) return respObj;
 
-  }, {concurrency: 2})
+    }, {
+      concurrency: 2
+    })
     .then((rawValues) => {
       // console.log('rawValues', rawValues)
       let values = rawValues.filter(rawVal => rawVal)
       console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
-    }, function() {
+    }, function () {
       console.log('stuff failed')
-  });
+    });
 }
 
-  // returns array of objects. Each object is inverter or facility
-  /**
-   * @param {Promise.<Object,Error>[]} arr - inverter info
-   * @param {string} authStringParam
-   */
-   async function getValues(arr, authStringParam) {
-    console.log('Input to getValues() = ', JSON.stringify( arr, null, 2 ))
-    //  console.log( 'Array input to callFariables = ', arr);
-    const dataListUrl = `${baseUrl}/DataList`
+// returns array of objects. Each object is inverter or facility
+/**
+ * @param {Promise.<Object,Error>[]} arr - inverter info
+ * @param {string} authStringParam
+ */
+async function getValues(arr, authStringParam) {
+  console.log('Input to getValues() = ', JSON.stringify(arr, null, 2))
+  //  console.log( 'Array input to callFariables = ', arr);
+  const dataListUrl = `${baseUrl}/DataList`
+  //   customDataSourceId = variable.varId_Plant_Power;
+  return Promise.map(arr, async (variable, index) => {
+      // let customDataSourceId = '';
+      // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
+      //   customDataSourceId = variable.varId_Inv_Power
+      // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
+      //   customDataSourceId = variable.varId_Inv_Irr;
+      // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
       //   customDataSourceId = variable.varId_Plant_Power;
-     Promise.map(arr, async (variable, index) => {
-        // let customDataSourceId = '';
-        // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
-        //   customDataSourceId = variable.varId_Inv_Power
-        // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
-        //   customDataSourceId = variable.varId_Inv_Irr;
-        // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
-        //   customDataSourceId = variable.varId_Plant_Power;
-        // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
-        //   customDataSourceId = variable.varId_Plant_Irradiance;
-        // }
-        const dataResponse = await axios({
+      // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
+      //   customDataSourceId = variable.varId_Plant_Irradiance;
+      // }
+      const dataResponse = await axios({
           method: 'get',
           url: dataListUrl,
-          headers: { 'Authorization': authStringParam },
+          headers: {
+            'Authorization': authStringParam
+          },
           params: {
             datasourceId: variable.VariableId,
             startDate: 1529452800,
-            endDate:   1529539200,
+            endDate: 1529539200,
             aggregationType: 0,
             grouping: 'raw'
           }
         })
-        .catch((error)=> {throw new CustomErrorHandler({code: 106, message:"dataResponse failed",error: error})});
-        dataResponse.data.forEach( dp => {
-          delete dp.DataSourceId;
-          return dp;
-        })
-        let resultObj = {
-          // DeviceId: variable.DeviceId,
-          Name: variable.Name,
-          FacilityId: variable.FacilityId,
-          // VariableId: variable.VariableId,
-          Unit: variable.Unit,
-          data: dataResponse.data // array of datapoints for inverter for time period
-          }
-        // console.log(`# of data pnts for inverter w variableId: ${variable.VariableId} = ${resultObj.data.length}`)
-        // maybe await would be better here, but it at least works with a simple return
-        if ( dataResponse.data ) return resultObj;
-    },{concurrency: 2})
-      .then(rawValues => {
-        let values = rawValues.filter( val => val);
-        // console.log('Array of energy datapoints = ', JSON.stringify(values, null, 2));
-        console.log('From getValues(), values = ', values);
-        return values;
-      }, function() {
-        console.log('stuff failed in getValues')
-      });
+        .catch((error) => { throw new CustomErrorHandler({ code: 106, message: "dataResponse failed", error: error }) });
+      dataResponse.data.forEach(dp => {
+        delete dp.DataSourceId;
+        return dp;
+      })
+      let resultObj = {
+        // DeviceId: variable.DeviceId,
+        Name: variable.Name,
+        FacilityId: variable.FacilityId,
+        // VariableId: variable.VariableId,
+        Unit: variable.Unit,
+        data: dataResponse.data // array of datapoints for inverter for time period
+      }
+      // console.log(`# of data pnts for inverter w variableId: ${variable.VariableId} = ${resultObj.data.length}`)
+      // maybe await would be better here, but it at least works with a simple return
+      if (dataResponse.data) return resultObj;
+    }, {
+      concurrency: 2
+    })
+    .then(values => {
+      console.log('From getValues(), Array of datapoints = ', JSON.stringify(values, null, 2));
+      console.log('typeof values = ', typeof values)
+
+      return values;
+    }, function () {
+      console.log('stuff failed in getValues')
+    });
+}
+
+/** This gets the bearer string**
+ * @constructor
+ * @param {string} authUrlParam -  Url from which to get Bearer Token
+ * @param {Object} credsParam - Object w username and password
+ * @param {string} credsParam.username - username
+ * @param {string} credsParam.password - password
+ * @returns {Promise.<string, Error>} - Bearer token
+ */
+async function getBearerString(authUrlParam, credsParam) {
+  // console.log('creds = ', credsParam)
+  let getTokenPromise = {}
+  // console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
+  getTokenPromise = await axios.post(authUrlParam, credsParam)
+    .catch((error) => { throw new CustomErrorHandler({ code: 107, message: "getBearerString/getTokenPromise failed", error: error }) });
+  console.log('bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
+  return 'Bearer '.concat(getTokenPromise.data.AccessToken);
+};
+
+function CustomErrorHandler(someObject) {
+  console.log(someObject)
+}
+
+
+// TODO: put each of these (ingestPowerData,
+// powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
+// object
+
+
+let ingestThenAgr = async () => {
+  // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6);
+  // const powerAtInverterLevel = ingest('inverter', 'power', 6);
+  try {
+    const powerAtPlantLevel = await ingest('plant', 'power', 6);
+
+    // const powerAtPlantLevel = await ingestPowerData('plant')
+    console.log('powerAtPlantLevel =', await powerAtPlantLevel)
+    console.log('typeof powerAtPlantLevel =', typeof powerAtPlantLevel)
+  } catch (error) {
+    if (error.response) {
+      // The request was made and the server responded with a status code that
+      // falls out of the range of 2xx
+      console.log('\nError, request made, but server responded with ...', error.response.data);
+      console.log('\nError.response.status = ', error.response.status);
+      console.log('\nError.response.headers = ', error.response.headers);
+    } else if (error.request) {
+      // The request was made but no response was received `error.request` is
+      // an instance of XMLHttpRequest in the browser and an instance of
+      // http.ClientRequest in node.js
+      console.log('Error. Request made but no response received....', error.request);
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.log('Error in setting up request....', error.message);
+    }
+    console.log('error.config = \n', error.config);
+    console.error('\n\n\n console.error = \n', error)
   }
+}
 
-  /** This gets the bearer string**
-   * @constructor
-   * @param {string} authUrlParam -  Url from which to get Bearer Token
-   * @param {Object} credsParam - Object w username and password
-   * @param {string} credsParam.username - username
-   * @param {string} credsParam.password - password
-   * @returns {Promise.<string, Error>} - Bearer token
-   */
-  async function getBearerString (authUrlParam, credsParam) {
-    // console.log('creds = ', credsParam)
-    let getTokenPromise = {}
-    // console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
-    getTokenPromise = await axios.post( authUrlParam, credsParam)
-      .catch((error)=> {throw new CustomErrorHandler({code: 107,
-        message:"getBearerString/getTokenPromise failed",error: error})});
-    console.log( 'bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
-    return 'Bearer '.concat(getTokenPromise.data.AccessToken);
-  };
+ingestThenAgr();
 
-  function CustomErrorHandler(someObject){
-    console.log(someObject)
-  }
+// console.log( 'irradianceAtPlantLevel =', irradianceAtPlantLevel)
 
 
-  // TODO: put each of these (ingestPowerData,
-  // powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
-  // object
+// Just an experiment
+// const plantEnergyData = ingest('plant', 'energy');
 
-  const ingestPowerData = inverterOrPlant => ingest(inverterOrPlant, 'power', 6);
+/* Plan for loading in and aggregating all historical data (1 time process)
+Run ingest for all time (calling data and saving in in db) then loop over
+facilities calling the python script (which does aggregation for historical
+data) then outputs back to ingest. Ingest then takes the output of the
+aggregated kpis for that facility, then save them back in the db in that
+facility document.
+*/
 
-  // const powerAtInverterLevel = ingestPowerData('inverter')
-  // console.log( 'powerAtInverterLevel =', powerAtInverterLevel)
-
-  const powerAtPlantLevel = ingestPowerData('plant')
-  console.log( 'powerAtPlantLevel =', powerAtPlantLevel)
-
-  // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6)
-
-  // console.log( 'irradianceAtPlantLevel =', irradianceAtPlantLevel)
-
-
-  // Just an experiment
-	// const plantEnergyData = ingest('plant', 'energy');
-
-	/* Plan for loading in and aggregating all historical data (1 time process)
-	Run ingest for all time (calling data and saving in in db) then loop over
-	facilities calling the python script (which does aggregation for historical
-	data) then outputs back to ingest. Ingest then takes the output of the
-	aggregated kpis for that facility, then save them back in the db in that
-	facility document.
-	*/
-
-  // Plan for continuous operation (taking in each months data)
-  // this script (which calls raw data for the month for each plant, saves it to db)
-  // should run, then I should lo	op over each plant id, and call the python
-  // script which will pull data from the db for just that facility, then accept
-  // the output of the aggregated kpis for that facility, then save them back in
-	// the db in that facility (bc all kpis are facility level)
+// Plan for continuous operation (taking in each months data)
+// this script (which calls raw data for the month for each plant, saves it to db)
+// should run, then I should lo	op over each plant id, and call the python
+// script which will pull data from the db for just that facility, then accept
+// the output of the aggregated kpis for that facility, then save them back in
+// the db in that facility (bc all kpis are facility level)
 
 // or there is the option to get all the data for each facility, one at a time.
