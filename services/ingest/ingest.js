@@ -167,10 +167,10 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
       await callFacilityVars(facilities, authString, 'plant', powerOrIrradiance)
     console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
 
-    const valuesFromIngest = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
+    const dataFromIngest = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
       .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "dataArray/getValues failed", error: error }) });
-    console.log(' valuesFromIngest = ',  await valuesFromIngest)
-    return await valuesFromIngest;
+    console.log('valueof dataFromIngest = ', await dataFromIngest)
+    return await dataFromIngest;
 
 
   } catch (error) {
@@ -499,9 +499,8 @@ async function getValues(arr, authStringParam) {
       concurrency: 2
     })
     .then(values => {
+      console.log('From getValues(), typeof values = ', typeof values)
       console.log('From getValues(), Array of datapoints = ', JSON.stringify(values, null, 2));
-      console.log('typeof values = ', typeof values)
-
       return values;
     }, function () {
       console.log('stuff failed in getValues')
@@ -537,10 +536,11 @@ function CustomErrorHandler(someObject) {
 
 
 let ingestThenAgr = async () => {
-  // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6);
-  // const powerAtInverterLevel = ingest('inverter', 'power', 6);
   try {
+    // powerAtPlantLevel is outputing correctly
     const powerAtPlantLevel = await ingest('plant', 'power', 6);
+    // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6);
+    // const powerAtInverterLevel = ingest('inverter', 'power', 6);
 
     // const powerAtPlantLevel = await ingestPowerData('plant')
     console.log('powerAtPlantLevel =', await powerAtPlantLevel)
