@@ -288,28 +288,30 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
 
   return Promise.map(arr, async (facility) => {
       let requestData = {};
+      let facilityPowerObj = facility.Parameters.filter(param => param.Name ==
+      'Power')[0];
       let irradianceObj = facility.Parameters.filter(param => param.Name ==
         'Irradiance')[0];
-      let facilityPowerObj = facility.Parameters.filter(param => param.Name ==
-        'Power')[0];
-      let facilityEnergyObj = facility.Parameters.filter(param => param.Name ===
-        'Energy')[0];
+      // let facilityEnergyObj = facility.Parameters.filter(param => param.Name ===
+        // 'Energy')[0];
       if (powerOrIrradianceParam === 'power') {
         requestData = {
           "FacilityId": facility.Id,
           "ParameterId": facilityPowerObj.Key.ParameterId
         }
-      } else if (powerOrIrradianceParam === 'irradiance') {
+      }
+      else if (powerOrIrradianceParam === 'irradiance') {
         requestData = {
-          "FacilityId": facility.FacilityId,
+          "FacilityId": facility.Id,
           "ParameterId": irradianceObj.Key.ParameterId
         }
-      } else if (powerOrIrradianceParam === 'energy') {
-        requestData = {
-          "FacilityId": facility.FacilityId,
-          "ParameterId": facilityEnergyObj.Key.ParameterId
-        }
       }
+      // else if (powerOrIrradianceParam === 'energy') {
+      //   requestData = {
+      //     "FacilityId": facility.Id,
+      //     "ParameterId": facilityEnergyObj.Key.ParameterId
+      //   }
+      // }
       const facVarIdResponse = await axios({
           method: 'post',
           url: varUrlParam,
@@ -341,14 +343,12 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
       // console.log( 'In callFacilityVars, facility = ', facility);
       console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return respObj;
-    }, {
-      concurrency: 2
-    })
-    .then((values) => {
+    }, { concurrency: 2 })
+    .then(values => {
       console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
-      console.log('stuff failed')
+      console.error('stuff failed. Error given = ', error)
     });
 }
 
@@ -440,7 +440,8 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
       console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
-      console.log('stuff failed')
+      console.error('Something is Promise.map in callInverterVars() FAILED!' +
+      'Error given = ', error)
     });
 }
 
@@ -499,9 +500,9 @@ async function getValues(arr, authStringParam) {
       concurrency: 2
     })
     .then(values => {
-      console.log('From getValues(), typeof values = ', typeof values)
-      console.log('From getValues(), Array of datapoints = ', JSON.stringify(values, null, 2));
-      return values;
+      console.log('From getValues(), outputing Array of datapoints OR just one' +
+      'object (if only processing on facility)= ', JSON.stringify(values, null, 2));
+      return (arr.length === 1) ? values[0] : values;
     }, function () {
       console.log('stuff failed in getValues')
     });
@@ -538,13 +539,15 @@ function CustomErrorHandler(someObject) {
 let ingestThenAgr = async () => {
   try {
     // powerAtPlantLevel is outputing correctly
-    const powerAtPlantLevel = await ingest('plant', 'power', 6);
-    // const irradianceAtPlantLevel = ingest('plant', 'irradiance', 6);
+    // const powerAtPlantLevel = await ingest('plant', 'power', 6);
+    // console.log('powerAtPlantLevel =', await powerAtPlantLevel)
+    // console.log('typeof powerAtPlantLevel =', typeof powerAtPlantLevel)
+
+
+    const irradianceAtPlantLevel = await ingest('plant', 'irradiance', 6);
+    console.log('irradianceAtPlantLevel =',  irradianceAtPlantLevel)
     // const powerAtInverterLevel = ingest('inverter', 'power', 6);
 
-    // const powerAtPlantLevel = await ingestPowerData('plant')
-    console.log('powerAtPlantLevel =', await powerAtPlantLevel)
-    console.log('typeof powerAtPlantLevel =', typeof powerAtPlantLevel)
   } catch (error) {
     if (error.response) {
       // The request was made and the server responded with a status code that
