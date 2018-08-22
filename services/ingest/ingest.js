@@ -123,8 +123,11 @@ const baseUrl = process.env.BASE_URL_DEMO;
  * @param  {string} powerOrIrradiance
  * @param  {number} [optionalFacId] - specifies if only a single specific
  * facility is desired
- * @returns {Promise.<Array.<Promise.<localObject,Error>>>} - inverter metadata and
- * timestamped data at eith plant or inverter level, and power or irradiance
+ * @returns {Promise.<Array.<Promise.<localObject,Error>>>|<Promise.<localObject,Error>> }  inverter metadata and
+ * timestamped data at eith plant or inverter level, and power or irradiance.
+ * Returns a promise that resolves to an array of objects (w/ one object per
+ * facility) OR if a 'optionalFacId had been supplied, ingest will return just
+ * one object for the facility desired.
  */
 async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
   try {
@@ -165,12 +168,13 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
     let variableIds = (inverterOrPlant === 'inverter') ?
       await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance) :
       await callFacilityVars(facilities, authString, 'plant', powerOrIrradiance)
-    console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
+    // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
 
     const dataFromIngest = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
       .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "dataArray/getValues failed", error: error }) });
-    console.log('valueof dataFromIngest = ', await dataFromIngest)
-    return await dataFromIngest;
+    // console.log('valueof dataFromIngest = ', dataFromIngest)
+    console.log('to be returned from ingest() = ', optionalFacId ? dataFromIngest[0] : dataFromIngest)
+    return await optionalFacId ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
 
 
   } catch (error) {
@@ -196,6 +200,7 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
 
 // make array of device info, for all facilities
 async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlantParam, powerOrIrradianceParam) {
+  // try removing parens on facility
   const invertersArrayNotFlat = await Promise.map(facilityIdArray, async (facility) => {
       /*  const devicesByTypeInverterUrl =
       `${baseUrl}/horizon/facilities/${facility}/devices/by-type/INVERTER`;
@@ -212,7 +217,7 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
     }, {
       concurrency: 2
     })
-    .then((rawValues) => {
+    .then((rawValues) => { // TODO: try to remove this filter.
       let values = rawValues.filter(rawVal => rawVal)
       return values;
     }, function () {
@@ -500,11 +505,10 @@ async function getValues(arr, authStringParam) {
       concurrency: 2
     })
     .then(values => {
-      console.log('From getValues(), outputing Array of datapoints OR just one' +
-      'object (if only processing on facility)= ', JSON.stringify(values, null, 2));
-      return (arr.length === 1) ? values[0] : values;
+      console.log('From getValues(), outputing Array of datapoints = ' , JSON.stringify(values, null, 2));
+      return values;
     }, function () {
-      console.log('stuff failed in getValues')
+      console.log('Promise.map() failed in getValues')
     });
 }
 
@@ -541,12 +545,12 @@ let ingestThenAgr = async () => {
     // powerAtPlantLevel is outputing correctly
     // const powerAtPlantLevel = await ingest('plant', 'power', 6);
     // console.log('powerAtPlantLevel =', await powerAtPlantLevel)
-    // console.log('typeof powerAtPlantLevel =', typeof powerAtPlantLevel)
 
+    // const irradianceAtPlantLevel = await ingest('plant', 'irradiance', 6);
+    // console.log('irradianceAtPlantLevel =',  irradianceAtPlantLevel)
 
-    const irradianceAtPlantLevel = await ingest('plant', 'irradiance', 6);
-    console.log('irradianceAtPlantLevel =',  irradianceAtPlantLevel)
-    // const powerAtInverterLevel = ingest('inverter', 'power', 6);
+    const powerAtInverterLevel = await ingest('inverter', 'power', 6);
+    console.log('powerAtInverterLevel =',  powerAtInverterLevel)
 
   } catch (error) {
     if (error.response) {
