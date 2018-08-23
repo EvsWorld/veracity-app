@@ -1,5 +1,8 @@
 #! /usr/bin/env node
 
+
+const jsonfile = require('jsonfile')
+
 require('dotenv').config({
   path: '/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'
 });
@@ -9,7 +12,7 @@ const Promise = require('bluebird');
 const axios = require('axios');
 
 // logger example
-var log4js = require('log4js');
+const log4js = require('log4js');
 log4js.configure({
   appenders: {
     cheese: {
@@ -129,7 +132,7 @@ const baseUrl = process.env.BASE_URL_DEMO;
  * facility) OR if a 'optionalFacId had been supplied, ingest will return just
  * one object for the facility desired.
  */
-async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
+async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDate, endDate) {
   try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = {
@@ -161,7 +164,13 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
     // based on inverterOrPlant and powerOrIrradiance, we call for the
     // appropriate parameterId
     let invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
-      .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "invertersArray/getInverterInfo failed", error: error }) });
+      .catch((error) => {
+        throw new CustomErrorHandler({
+          code: 104,
+          message: "invertersArray/getInverterInfo failed",
+          error: error
+        })
+      });
     // variablesIds become an array of objects which have a VariableId key
     console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
@@ -170,11 +179,17 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId) {
       await callFacilityVars(facilities, authString, 'plant', powerOrIrradiance)
     // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
 
-    const dataFromIngest = await getValues(variableIds, authString, inverterOrPlant, powerOrIrradiance)
-      .catch((error) => { throw new CustomErrorHandler({ code: 104, message: "dataArray/getValues failed", error: error }) });
+    const dataFromIngest = await getValues(variableIds, authString, startDate, endDate )
+      .catch((error) => {
+        throw new CustomErrorHandler({
+          code: 104,
+          message: "dataArray/getValues failed",
+          error: error
+          })
+      });
     // console.log('valueof dataFromIngest = ', dataFromIngest)
-    console.log('to be returned from ingest() = ', optionalFacId ? dataFromIngest[0] : dataFromIngest)
-    return await optionalFacId ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
+    // console.log('to be returned from ingest() = ', (optionalFacId && inverterOrPlant !== 'inverter') ? dataFromIngest[0] : dataFromIngest)
+    return await (optionalFacId && inverterOrPlant !== 'inverter') ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
 
 
   } catch (error) {
@@ -211,7 +226,13 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
             'Authorization': authStringParam
           }
         })
-        .catch((error) => { throw new CustomErrorHandler({ code: 101, message: "invertersArrayNotFlat failed", error: error }) });
+        .catch((error) => {
+          throw new CustomErrorHandler({
+            code: 101,
+            message: "invertersArrayNotFlat failed",
+            error: error
+          })
+        });
       if (response.data) return response.data // array of inverters
 
     }, {
@@ -254,10 +275,8 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
     // TODO: do this for inverter level ones so we dont get error when call function with 'plant'
     let tempObj = {
       ParameterId_facility_irradiance: facilityIrradianceObj ?
-        facilityIrradianceObj.Key.ParameterId :
-        null,
-      ParameterId_facility_power: facilityPowerObj ? facilityPowerObj.Key.ParameterId :
-        null,
+        facilityIrradianceObj.Key.ParameterId : null,
+      ParameterId_facility_power: facilityPowerObj ? facilityPowerObj.Key.ParameterId : null,
       DeviceId_irradiance: irradianceObj.Key.DeviceId,
       ParameterId_irradiance: irradianceObj.Key.ParameterId,
 
@@ -266,11 +285,9 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
 
       FacilityId: inverter.FacilityId,
       PeakPower: peakPowerObj.Value,
-      ParametersLevelName: (powerObj.Name === 'power') ? powerObj.Name :
-        irradianceObj.ParameterType,
+      ParametersLevelName: (powerObj.Name === 'power') ? powerObj.Name : irradianceObj.ParameterType,
       ParameterType: powerObj.ParameterType,
-      Units: (powerOrIrradianceParam === 'power') ? powerObj.Units :
-        irradianceObj.Units,
+      Units: (powerOrIrradianceParam === 'power') ? powerObj.Units : irradianceObj.Units,
       Stooge: 'TheStooge'
     }
     return tempObj;
@@ -294,21 +311,26 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
   return Promise.map(arr, async (facility) => {
       let requestData = {};
       let facilityPowerObj = facility.Parameters.filter(param => param.Name ==
-      'Power')[0];
-      let irradianceObj = facility.Parameters.filter(param => param.Name ==
-        'Irradiance')[0];
+        'Power')[0];
+        let irradianceObj = facility.Parameters.filter(param => param.Name ==
+          'Irradiance')[0];
+        let facilityLatLongObj = facility.Descriptions.filter(param => param.Name ==
+          'PlantLatitud_Longitud')[0];
+        let facilityNomPowerObj = facility.Descriptions.filter(param => param.Name ==
+          'Potencia Nominal')[0];
       // let facilityEnergyObj = facility.Parameters.filter(param => param.Name ===
-        // 'Energy')[0];
+      // 'Energy')[0];
       if (powerOrIrradianceParam === 'power') {
         requestData = {
           "FacilityId": facility.Id,
-          "ParameterId": facilityPowerObj.Key.ParameterId
+          "ParameterId": facilityPowerObj.Key.ParameterId,
+          "LatLong": facilityLatLongObj.Value
         }
-      }
-      else if (powerOrIrradianceParam === 'irradiance') {
+      } else if (powerOrIrradianceParam === 'irradiance') {
         requestData = {
           "FacilityId": facility.Id,
-          "ParameterId": irradianceObj.Key.ParameterId
+          "ParameterId": irradianceObj.Key.ParameterId,
+          "LatLong": facilityLatLongObj.Value
         }
       }
       // else if (powerOrIrradianceParam === 'energy') {
@@ -325,7 +347,13 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
             'Authorization': authStringParam
           }
         })
-        .catch((error) => { throw new CustomErrorHandler({ code: 105, message: "facVarIdResponse failed", error: error }) });
+        .catch((error) => {
+          throw new CustomErrorHandler({
+            code: 105,
+            message: "facVarIdResponse failed",
+            error: error
+          })
+        });
 
       let respObj = {};
       // in this respObj, we must get all properties from previous request in
@@ -338,22 +366,24 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
         // respObj.varId_Inv_Irr =
         // respObj.varId_Plant_Power =
         // respObj.varId_Plant_Irradiance =
-        respObj.FacilityId = facVarIdResponse.data.Key.FacilityId;
-        respObj.DeviceId = facVarIdResponse.data.Key.DeviceId;
+        // respObj.FacilityId = facVarIdResponse.data.Key.FacilityId;
+        // respObj.DeviceId = facVarIdResponse.data.Key.DeviceId;
         respObj.VariableId = facVarIdResponse.data.Key.VariableId;
-        respObj.Name = facVarIdResponse.data.Name;
-        respObj.Unit = facVarIdResponse.data.Unit;
-        respObj.PeakPower = facility.PeakPower;
+        // respObj.Name = facVarIdResponse.data.Name;
+        // respObj.Unit = facVarIdResponse.data.Unit;
+        // respObj.PeakPower = facility.PeakPower;
       }
       // console.log( 'In callFacilityVars, facility = ', facility);
       console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return respObj;
-    }, { concurrency: 2 })
+    }, {
+      concurrency: 2
+    })
     .then(values => {
       console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
-      console.error('stuff failed. Error given = ', error)
+      console.error('stuff failed in callFacilityVars(), in Promise.map');
     });
 }
 
@@ -413,7 +443,13 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
             'Authorization': authStringParam
           }
         })
-        .catch((error) => { throw new CustomErrorHandler({ code: 102, message: "variableIdResponse failed", error: error }) });
+        .catch((error) => {
+          throw new CustomErrorHandler({
+            code: 102,
+            message: "variableIdResponse failed",
+            error: error
+          })
+        });
 
       // in this respObj, we must get all properties from previous request in
       // here
@@ -439,14 +475,12 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
     }, {
       concurrency: 2
     })
-    .then((rawValues) => {
-      // console.log('rawValues', rawValues)
-      let values = rawValues.filter(rawVal => rawVal)
+    .then(values => {
       console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
       console.error('Something is Promise.map in callInverterVars() FAILED!' +
-      'Error given = ', error)
+        'Error given = ', error)
     });
 }
 
@@ -455,22 +489,10 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
  * @param {Promise.<Object,Error>[]} arr - inverter info
  * @param {string} authStringParam
  */
-async function getValues(arr, authStringParam) {
+async function getValues(arr, authStringParam, startDate, endDate) {
   console.log('Input to getValues() = ', JSON.stringify(arr, null, 2))
-  //  console.log( 'Array input to callFariables = ', arr);
   const dataListUrl = `${baseUrl}/DataList`
-  //   customDataSourceId = variable.varId_Plant_Power;
   return Promise.map(arr, async (variable, index) => {
-      // let customDataSourceId = '';
-      // if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'power')) {
-      //   customDataSourceId = variable.varId_Inv_Power
-      // } else if (( inverterOrPlantParam === 'inverter' ) && ( powerOrIrradianceParam === 'irradiance')) {
-      //   customDataSourceId = variable.varId_Inv_Irr;
-      // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'power')) {
-      //   customDataSourceId = variable.varId_Plant_Power;
-      // } else if (( inverterOrPlantParam === 'plant' ) && ( powerOrIrradianceParam === 'irradiance')) {
-      //   customDataSourceId = variable.varId_Plant_Irradiance;
-      // }
       const dataResponse = await axios({
           method: 'get',
           url: dataListUrl,
@@ -479,33 +501,84 @@ async function getValues(arr, authStringParam) {
           },
           params: {
             datasourceId: variable.VariableId,
-            startDate: 1529452800,
-            endDate: 1529539200,
+            startDate: startDate,
+            endDate: endDate,
             aggregationType: 0,
             grouping: 'raw'
           }
         })
-        .catch((error) => { throw new CustomErrorHandler({ code: 106, message: "dataResponse failed", error: error }) });
+        .catch((error) => {
+          throw new CustomErrorHandler({
+            code: 106,
+            message: "dataResponse failed",
+            error: error
+          })
+        });
       dataResponse.data.forEach(dp => {
         delete dp.DataSourceId;
         return dp;
       })
-      let resultObj = {
-        // DeviceId: variable.DeviceId,
-        Name: variable.Name,
-        FacilityId: variable.FacilityId,
-        // VariableId: variable.VariableId,
-        Unit: variable.Unit,
-        data: dataResponse.data // array of datapoints for inverter for time period
-      }
+      // let resultObj = {
+      // DeviceId: variable.DeviceId,
+      // Name: variable.Name,
+      // FacilityId: variable.FacilityId,
+      // VariableId: variable.VariableId,
+      // Unit: variable.Unit,
+      // data: dataResponse.data // array of datapoints for inverter for time period
+      // }
       // console.log(`# of data pnts for inverter w variableId: ${variable.VariableId} = ${resultObj.data.length}`)
       // maybe await would be better here, but it at least works with a simple return
-      if (dataResponse.data) return resultObj;
+      // if (dataResponse.data) return resultObj;
+      if (dataResponse.data) return dataResponse.data;
+      // TODO: insert in db in the array where it goes.
+
+
+
+
+
+      /*
+      // opens connection to mongodb
+      MongoClient.connect(myDatabaseConnectionString).then(client => {
+
+        // creates const for our database
+        const db = client.db(dbName);
+
+        // creates const for 'employees' collection in database
+        const col = db.collection('employees');
+
+        // inserts ONE employee into 'employees' collection
+        col.insertOne(employee).then(doc => {
+
+          // logs message upon inserting employee to 'employees' collection
+          console.log('employee inserted', doc);
+
+          // redirects user back to index page after POST req submit
+          res.redirect('/');
+
+          // closes connection to mongodb and logs message
+          client.close(() => console.log('connection closed'));
+
+          checks for error in inserting employee to 'employees' collection
+          }).catch(err => {
+
+          // logs message upon error in inserting employee to 'employees' collection
+          console.log('error inserting employee', err);
+
+          });
+
+        // checks for error in connecting to mongodb
+        }).catch(err => {
+
+        // logs message upon error connecting to mongodb
+        console.log('error connecting to mongodb', err);
+
+    });
+    */
     }, {
       concurrency: 2
     })
     .then(values => {
-      console.log('From getValues(), outputing Array of datapoints = ' , JSON.stringify(values, null, 2));
+      console.log('From getValues(), outputing Array of datapoints = ', JSON.stringify(values, null, 2));
       return values;
     }, function () {
       console.log('Promise.map() failed in getValues')
@@ -525,7 +598,13 @@ async function getBearerString(authUrlParam, credsParam) {
   let getTokenPromise = {}
   // console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
   getTokenPromise = await axios.post(authUrlParam, credsParam)
-    .catch((error) => { throw new CustomErrorHandler({ code: 107, message: "getBearerString/getTokenPromise failed", error: error }) });
+    .catch((error) => {
+      throw new CustomErrorHandler({
+        code: 107,
+        message: "getBearerString/getTokenPromise failed",
+        error: error
+      })
+    });
   console.log('bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
   return 'Bearer '.concat(getTokenPromise.data.AccessToken);
 };
@@ -534,23 +613,50 @@ function CustomErrorHandler(someObject) {
   console.log(someObject)
 }
 
+/**
+ * @param  {string} filePath
+ * @param  {array} arr
+ */
 
 // TODO: put each of these (ingestPowerData,
 // powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
 // object
 
 
-let ingestThenAgr = async () => {
+let ingestThenAgr = async (startDate, endDate, facId) => {
+  const path = require('path'); // Used to resolve paths properly.
+  const pathToJsonFile = path.resolve(__dirname, 'ingestTempOutput.json');
   try {
-    // powerAtPlantLevel is outputing correctly
-    // const powerAtPlantLevel = await ingest('plant', 'power', 6);
-    // console.log('powerAtPlantLevel =', await powerAtPlantLevel)
+    let objInputToAgg = {};
+    const powerAtPlantLevel = await ingest('plant', 'power', facId, startDate, endDate);
+    console.log('powerAtPlantLevel =',  powerAtPlantLevel)
+    // TODO: save this object to db under corresponding facility id.
 
-    // const irradianceAtPlantLevel = await ingest('plant', 'irradiance', 6);
-    // console.log('irradianceAtPlantLevel =',  irradianceAtPlantLevel)
+    const irradianceAtPlantLevel = await ingest('plant', 'irradiance', facId, startDate, endDate);
+    console.log('irradianceAtPlantLevel =', irradianceAtPlantLevel)
+    // TODO: save this object to db under corresponding facility id.
 
-    const powerAtInverterLevel = await ingest('inverter', 'power', 6);
-    console.log('powerAtInverterLevel =',  powerAtInverterLevel)
+    // outputs array of object. Each object is inverter
+    const powerAtInverterLevel = await ingest('inverter', 'power', facId, startDate, endDate);
+    console.log('powerAtInverterLevel =', powerAtInverterLevel)
+    // TODO: save this array to db under corresponding facility id.
+
+    objInputToAgg = {
+      "powerAtPlantLevel": powerAtPlantLevel,
+      "irradianceAtPlantLevel": irradianceAtPlantLevel,
+      "powerAtInverterLevel": powerAtInverterLevel
+    };
+    jsonfile.writeFile(pathToJsonFile, objInputToAgg, err => console.error(err) );
+
+/*     Promise.all([powerAtPlantLevel,irradianceAtPlantLevel,powerAtInverterLevel])
+    .then(valuesArray => {
+        console.log('From ingestThenAgr, length of resolved array is: ', valuesArray.length)
+        jsonfile.writeFile(pathToJsonFile, valuesArray, err => console.error(err) );
+      }, function () {
+        console.log('Promise.all() failed in ingestThenAgr()');
+      }); */
+
+
 
   } catch (error) {
     if (error.response) {
@@ -573,7 +679,7 @@ let ingestThenAgr = async () => {
   }
 }
 
-ingestThenAgr();
+ingestThenAgr(1498003200, 1529539200, 6);
 
 // console.log( 'irradianceAtPlantLevel =', irradianceAtPlantLevel)
 
