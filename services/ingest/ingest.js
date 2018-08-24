@@ -1,22 +1,18 @@
 #! /usr/bin/env node
 
-const redis = require('redis');
-const rejson = require('redis-rejson');
-rejson(redis);
-const bluebird = require("bluebird");
-const client = redis.createClient();
-
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
-
-const jsonfile = require('jsonfile')
-
 require('dotenv').config({
   path: '/Users/evanhendrix1/programming/code/green-power-monitor/experiment-instatrust/veracity-app/services/.env'
 });
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 
-const Promise = bluebird;
+const mongoose = require("mongoose");
+// const dbConnectionString = process.env.MONGO_LOCAL_CON_STRING;
+// const dbConnectionString = process.env.COSMOSDB_CON_STRING;
+const dbConnectionString = process.env.MLABDB_CON_STRING;
+
+
+
+const Promise = require('bluebird');
 const axios = require('axios');
 
 // logger example
@@ -266,8 +262,6 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
   // TODO: find a way to bring along all of these properties to the next array
   // of object with the variableids
   return invertersArrayFiltered.map(inverter => {
-    // console.log('\n\n**************\n inverter: ', inverter, 'indexO: ',
-    // indexO);
     let facilityIrradianceObj = inverter.Parameters.filter(param => param.Name === 'Irradiance')[0];
     let plantRatedPowerObj = inverter.Descriptions.filter(param => param.Name === 'PlantRated_Power')[0];
     let facilityPowerObj = inverter.Parameters.filter(param => param.Name === 'Power')[0];
@@ -574,7 +568,7 @@ async function getBearerString(authUrlParam, credsParam) {
         error: error
       })
     });
-  console.log('bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
+    console.log('bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
   return 'Bearer '.concat(getTokenPromise.data.AccessToken);
 };
 
@@ -582,25 +576,21 @@ function CustomErrorHandler(someObject) {
   console.log(someObject)
 }
 
-// TODO: put each of these (ingestPowerData,
-// powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
-// object
-
 
 let ingestThenAgr = async (startDate, endDate, facId) => {
-  const path = require('path'); // Used to resolve paths properly.
-  const pathToJsonFile = path.resolve(__dirname, 'ingestTempOutput.json');
+
   try {
+    // opens connection to mongodb
+    mongoose.connect(`${dbConnectionString}/instatrust-temp`, { useNewUrlParser: true });
+    const db = mongoose.connection;
+    db.on('error', console.error.bind(console, 'connection error:'));
+    db.once('open', async () => {
+      // we're connected!
+
     let objInputToAgg = {};
     const powerAtPlantLevel = await ingest('plant', 'power', facId, startDate, endDate);
-    // console.log('powerAtPlantLevel =',  powerAtPlantLevel)
+    console.log('powerAtPlantLevel =',  powerAtPlantLevel)
     // TODO: save this object to db under corresponding facility id.
-    client.json_set("message", ".", JSON.stringify({key: "Hello Evan!!"}));
-    client.json_set("message", ".", JSON.stringify({powerKey: powerAtPlantLevel}));
-
-    client.json_get("message", ".key", (err, payload) => {
-      console.log(payload);
-    })
 
     const irradianceAtPlantLevel = await ingest('plant', 'irradiance', facId, startDate, endDate);
     // console.log('irradianceAtPlantLevel =', irradianceAtPlantLevel)
@@ -611,21 +601,84 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
     // console.log('powerAtInverterLevel =', powerAtInverterLevel)
     // TODO: save this array to db under corresponding facility id.
 
-    objInputToAgg = {
-      "powerAtPlantLevel": await powerAtPlantLevel,
-      "irradianceAtPlantLevel": await irradianceAtPlantLevel,
-      "powerAtInverterLevel": await powerAtInverterLevel
-    };
-    // jsonfile.writeFile(pathToJsonFile, objInputToAgg, err => console.error(err) );
+    // objInputToAgg = {
+    //   PowerAtPlantLevel: powerAtPlantLevel,
+    //   IrradianceAtPlantLevel: irradianceAtPlantLevel,
+    //   PowerAtInverterLevel: powerAtInverterLevel
+    // };
+    // console.log('objInputToAgg = ', JSON.stringify(objInputToAgg,null, 2));
 
-/*     Promise.all([powerAtPlantLevel,irradianceAtPlantLevel,powerAtInverterLevel])
-    .then(valuesArray => {
-        console.log('From ingestThenAgr, length of resolved array is: ', valuesArray.length)
-        jsonfile.writeFile(pathToJsonFile, valuesArray, err => console.error(err) );
-      }, function () {
-        console.log('Promise.all() failed in ingestThenAgr()');
-      }); */
+        const facilitySchema = new mongoose.Schema({
+          PowerAtPlantLevel: Array,
+          IrradianceAtPlantLevel: Array,
+          PowerAtInverterLevel: Array,
+          FacilityId: Number,
+          FacilityName: String,
+          PeakPower: Number,
+          NominalPower: Number,
+          Longitude: Number,
+          Latitude: Number,
+          TimeZone: String,
+          Country: String,
+          PVmoduleTechnology: String,
+          PVmoduleModel: String,
+          InverterTechnology: String,
+          InverterModel: String,
+          MountingStructure: String,
+          IrradianceSensor: String,
+          RevenueType: String,
+          Price: Number,
+          RemainingYears: Number,
+          ExpectedIRR: Number,
+          TotalOPEX: Number,
+          OandM: Number,
+          Taxes: Number,
+          P50Production: Number,
+          BudgetedPR: Number,
+          GuaranteedAvailability: Number
+        });
+        // So far so good. We've got a schema with one property, name, which
+        // will be a String. We will add a sayHello method as well The next step is
+        // compiling our schema into a Model.
+        facilitySchema.methods.sayHello = function () {
+          const greeting = this.PowerAtPlantLevel
+            ? "Meow PowerAtPlantLevel is " + this.PowerAtPlantLevel
+            : "I don't have a name";
+          console.log(greeting);
+        }
 
+        const Facility = mongoose.model('Facility', facilitySchema);
+
+        // Functions added to the methods property of a schema get compiled into
+        // the Model prototype and exposed on each document instance:
+        const tempInputFacility = new Facility(
+          { FacilityId: facId,
+            PowerAtPlantLevel: powerAtPlantLevel,
+            IrradianceAtPlantLevel: irradianceAtPlantLevel,
+            PowerAtInverterLevel: powerAtInverterLevel
+          });
+        tempInputFacility.save(function (err, tempInputFacility) {
+          if (err) return console.error(err);
+          tempInputFacility.sayHello();
+        });
+
+        // Say time goes by and we want to display all the kittens we've seen.
+        // We can access all of the kitten documents through our Facility model.
+        Facility.find(function (err, facilities) {
+          if (err) return console.error(err);
+          console.log(facilities);
+        })
+
+        // We just logged all of the facilities in our db to the console. If we
+        // want to filter our facilities by name, Mongoose supports MongoDBs rich
+        // querying syntax.
+        Facility.find({ FacilityId: /^6/ }, values => {
+          console.log('values from kitten query = ', values)
+        });
+        // This performs a search for all documents with a name property that
+        // begins with "Fluff" and returns the result as an array of facilities to
+        // the callback.
+      });
 
 
   } catch (error) {
@@ -649,7 +702,7 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
   }
 }
 
-ingestThenAgr(1377279661, 1529539200, 6);
+ingestThenAgr(1529452800, 1529539200, 6);
 
 /* Plan for loading in and aggregating all historical data (1 time process)
 Run ingest for all time (calling data and saving in in db) then loop over
