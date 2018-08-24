@@ -1,5 +1,13 @@
 #! /usr/bin/env node
 
+const redis = require('redis');
+const rejson = require('redis-rejson');
+rejson(redis);
+const bluebird = require("bluebird");
+const client = redis.createClient();
+
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 
 const jsonfile = require('jsonfile')
 
@@ -8,7 +16,7 @@ require('dotenv').config({
 });
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 
-const Promise = require('bluebird');
+const Promise = bluebird;
 const axios = require('axios');
 
 // logger example
@@ -172,7 +180,7 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
         })
       });
     // variablesIds become an array of objects which have a VariableId key
-    console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
+    // console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
     let variableIds = (inverterOrPlant === 'inverter') ?
       await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance) :
@@ -238,8 +246,8 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
     }, {
       concurrency: 2
     })
-    .then((rawValues) => { // TODO: try to remove this filter.
-      let values = rawValues.filter(rawVal => rawVal)
+    .then((rawValues) => {
+      let values = rawValues.filter(rawVal => rawVal) // TODO: remove this?
       return values;
     }, function () {
       console.log('stuff failed in getInverterInfo()' +
@@ -402,6 +410,9 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
   const varUrlParam = (inverterOrPlantParam === 'inverter') ?
     `${baseUrl}/horizon/parametertovariable/deviceparameter` :
     `${baseUrl}/parametertovariable/facilityparameter`
+  // For testing purposes, limit number of inverters to 5 per plant
+  const arrSlice = arr.slice(0,2)
+  arr = arrSlice ? arrSlice : arr;
   return Promise.map(arr, async (inverter) => {
       let requestData = {};
       if (inverterOrPlantParam === 'plant') {
@@ -479,8 +490,7 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
       console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
-      console.error('Something is Promise.map in callInverterVars() FAILED!' +
-        'Error given = ', error)
+      console.error('Something is Promise.map in callInverterVars() FAILED!')
     });
 }
 
@@ -490,7 +500,7 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
  * @param {string} authStringParam
  */
 async function getValues(arr, authStringParam, startDate, endDate) {
-  console.log('Input to getValues() = ', JSON.stringify(arr, null, 2))
+  // console.log('Input to getValues() = ', JSON.stringify(arr, null, 2))
   const dataListUrl = `${baseUrl}/DataList`
   return Promise.map(arr, async (variable, index) => {
       const dataResponse = await axios({
@@ -533,52 +543,11 @@ async function getValues(arr, authStringParam, startDate, endDate) {
       // TODO: insert in db in the array where it goes.
 
 
-
-
-
-      /*
-      // opens connection to mongodb
-      MongoClient.connect(myDatabaseConnectionString).then(client => {
-
-        // creates const for our database
-        const db = client.db(dbName);
-
-        // creates const for 'employees' collection in database
-        const col = db.collection('employees');
-
-        // inserts ONE employee into 'employees' collection
-        col.insertOne(employee).then(doc => {
-
-          // logs message upon inserting employee to 'employees' collection
-          console.log('employee inserted', doc);
-
-          // redirects user back to index page after POST req submit
-          res.redirect('/');
-
-          // closes connection to mongodb and logs message
-          client.close(() => console.log('connection closed'));
-
-          checks for error in inserting employee to 'employees' collection
-          }).catch(err => {
-
-          // logs message upon error in inserting employee to 'employees' collection
-          console.log('error inserting employee', err);
-
-          });
-
-        // checks for error in connecting to mongodb
-        }).catch(err => {
-
-        // logs message upon error connecting to mongodb
-        console.log('error connecting to mongodb', err);
-
-    });
-    */
     }, {
       concurrency: 2
     })
     .then(values => {
-      console.log('From getValues(), outputing Array of datapoints = ', JSON.stringify(values, null, 2));
+      // console.log('From getValues(), outputing Array of datapoints = ', JSON.stringify(values, null, 2));
       return values;
     }, function () {
       console.log('Promise.map() failed in getValues')
@@ -613,11 +582,6 @@ function CustomErrorHandler(someObject) {
   console.log(someObject)
 }
 
-/**
- * @param  {string} filePath
- * @param  {array} arr
- */
-
 // TODO: put each of these (ingestPowerData,
 // powerAtInverterLevel,powerAtPlantLevel ) calculated arays into output
 // object
@@ -629,24 +593,30 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
   try {
     let objInputToAgg = {};
     const powerAtPlantLevel = await ingest('plant', 'power', facId, startDate, endDate);
-    console.log('powerAtPlantLevel =',  powerAtPlantLevel)
+    // console.log('powerAtPlantLevel =',  powerAtPlantLevel)
     // TODO: save this object to db under corresponding facility id.
+    client.json_set("message", ".", JSON.stringify({key: "Hello Evan!!"}));
+    client.json_set("message", ".", JSON.stringify({powerKey: powerAtPlantLevel}));
+
+    client.json_get("message", ".key", (err, payload) => {
+      console.log(payload);
+    })
 
     const irradianceAtPlantLevel = await ingest('plant', 'irradiance', facId, startDate, endDate);
-    console.log('irradianceAtPlantLevel =', irradianceAtPlantLevel)
+    // console.log('irradianceAtPlantLevel =', irradianceAtPlantLevel)
     // TODO: save this object to db under corresponding facility id.
 
     // outputs array of object. Each object is inverter
     const powerAtInverterLevel = await ingest('inverter', 'power', facId, startDate, endDate);
-    console.log('powerAtInverterLevel =', powerAtInverterLevel)
+    // console.log('powerAtInverterLevel =', powerAtInverterLevel)
     // TODO: save this array to db under corresponding facility id.
 
     objInputToAgg = {
-      "powerAtPlantLevel": powerAtPlantLevel,
-      "irradianceAtPlantLevel": irradianceAtPlantLevel,
-      "powerAtInverterLevel": powerAtInverterLevel
+      "powerAtPlantLevel": await powerAtPlantLevel,
+      "irradianceAtPlantLevel": await irradianceAtPlantLevel,
+      "powerAtInverterLevel": await powerAtInverterLevel
     };
-    jsonfile.writeFile(pathToJsonFile, objInputToAgg, err => console.error(err) );
+    // jsonfile.writeFile(pathToJsonFile, objInputToAgg, err => console.error(err) );
 
 /*     Promise.all([powerAtPlantLevel,irradianceAtPlantLevel,powerAtInverterLevel])
     .then(valuesArray => {
@@ -679,13 +649,7 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
   }
 }
 
-ingestThenAgr(1498003200, 1529539200, 6);
-
-// console.log( 'irradianceAtPlantLevel =', irradianceAtPlantLevel)
-
-
-// Just an experiment
-// const plantEnergyData = ingest('plant', 'energy');
+ingestThenAgr(1377279661, 1529539200, 6);
 
 /* Plan for loading in and aggregating all historical data (1 time process)
 Run ingest for all time (calling data and saving in in db) then loop over
