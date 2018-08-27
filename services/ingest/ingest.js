@@ -5,11 +5,14 @@ require('dotenv').config({
 });
 // http://robdodson.me/how-to-run-a-node-script-from-the-command-line/
 
-const mongoose = require("mongoose");
-// const dbConnectionString = process.env.MONGO_LOCAL_CON_STRING;
-// const dbConnectionString = process.env.COSMOSDB_CON_STRING;
-const dbConnectionString = process.env.MLABDB_CON_STRING;
+// to connect to db..
+// requiring the db like this is executing the code right here.
+require('./db/db');
 
+// to include db models...
+const plantPower = require('./db/model/plantPower');
+const inverterPower = require('./db/model/inverterPower');
+const plantIrradiance = require('./db/model/plantIrradiance');
 
 
 const Promise = require('bluebird');
@@ -43,60 +46,6 @@ logger.fatal('Cheese was breeding ground for listeria.');
 console.log('this is from console.log');
 process.stdout.write('this is from process.stdout.write\n')
 
-// ******** Database Config (will go in another file) ********
-// const Sequelize = require('sequelize');
-// const sequelize = new Sequelize('database', 'username', 'password', {
-//   host: 'localhost',
-//   dialect: 'mysql'|'sqlite'|'postgres'|'mssql',
-//   operatorsAliases: false,
-
-//   pool: {
-//     max: 5,
-//     min: 0,
-//     acquire: 30000,
-//     idle: 10000
-//   },
-
-//   // SQLite only
-//   storage: 'path/to/database.sqlite'
-// });
-
-// // Or you can simply use a connection uri
-// const sequelize = new Sequelize('postgres://user:pass@example.com:5432/dbname');
-
-//   // test our connection
-//   sequelize
-//   .authenticate()
-//   .then(() => {
-//     console.log('Connection has been established successfully.');
-//   })
-//   .catch(err => {
-//     console.error('Unable to connect to the database:', err);
-//   });
-
-
-/* After connecting to the database in our app.js we need to define our Schema.
-Here are the lines you need to add to the app.js. */
-/* const assetSchema = new mongoose.Schema({
-  assetName: String,
-  assetAddress: String,
-  assetCapacity: Number,
-  assetKPIExample1: Number,
-  assetKPIExample2: Number
-}); */
-
-/* Once we have built our Schema, we need to create a model from it. I am going
-to call my model “DataInput”. Here is the line you will add next to create our
-model. */
-// const Asset = mongoose.model("Asset", assetSchema);
-
-// });
-
-/* We can access all of the asset documents through our Assets model. */
-/* Assets.find(function (err, assets) {
-  if (err) return console.error(err);
-  console.log(assets);
-}) */ // ************** End Database Config **********************
 
 console.log('you. are. AWESOME!');
 
@@ -137,7 +86,6 @@ const baseUrl = process.env.BASE_URL_DEMO;
  * one object for the facility desired.
  */
 async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDate, endDate) {
-  try {
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = {
       'username': username,
@@ -151,7 +99,15 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
       headers: {
         Authorization: authString
       }
-    });
+    }).catch((error) => {
+        throw new CustomErrorHandler({
+          code: 109,
+          message: "facilityIdsResponse failed",
+          error: error
+        })
+      });
+
+
     const facilityIdsData = facilityIdsResponse.data;
     const oneFacilityData = facilityIdsData.filter(facility => {
       return (facility.Id === optionalFacId)
@@ -192,29 +148,47 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
           })
       });
     // console.log('valueof dataFromIngest = ', dataFromIngest)
-    // console.log('to be returned from ingest() = ', (optionalFacId && inverterOrPlant !== 'inverter') ? dataFromIngest[0] : dataFromIngest)
-    return await (optionalFacId && inverterOrPlant !== 'inverter') ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
-
-
-  } catch (error) {
-    if (error.response) {
-      // The request was made and the server responded with a status code that
-      // falls out of the range of 2xx
-      console.log('\nError, request made, but server responded with ...', error.response.data);
-      console.log('\nError.response.status = ', error.response.status);
-      console.log('\nError.response.headers = ', error.response.headers);
-    } else if (error.request) {
-      // The request was made but no response was received `error.request` is
-      // an instance of XMLHttpRequest in the browser and an instance of
-      // http.ClientRequest in node.js
-      console.log('Error. Request made but no response received....', error.request);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.log('Error in setting up request....', error.message);
+    // console.log(`to be returned from ingest(${inverterOrPlant},${powerOrIrradiance}) = `, (optionalFacId && inverterOrPlant === 'plant'
+      // && powerOrIrradiance === 'power') ? dataFromIngest[0] : dataFromIngest)
+    // return await (optionalFacId && inverterOrPlant === 'plant' && powerOrIrradiance === 'power') ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
+    if (optionalFacId && inverterOrPlant === 'plant'
+      && powerOrIrradiance === 'power') {
+      const tempPlantPowerTimeStamp  = new plantPower({
+        Date: dataFromIngest[0].Date,
+        Value: dataFromIngest[0].Value,
+        });
+        console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
+        \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
+        ${tempPlantPowerTimeStamp}`);
+      tempPlantPowerTimeStamp.save(function (err, tempPlantPowerTimeStamp) {
+        if (err) return console.error(err);
+      });
     }
-    console.log('error.config = \n', error.config);
-    console.error('\n\n\n console.error = \n', error)
-  }
+    else if (optionalFacId && inverterOrPlant === 'plant'
+      && powerOrIrradiance === 'irradiance') {
+      const tempPlantIrradianceTimeStamp = new plantIrradiance({
+        Date: dataFromIngest[0].Date,
+        Value: dataFromIngest[0].Value
+      });
+      console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
+      \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
+      ${tempPlantPowerTimeStamp}`);
+    }
+    else if (optionalFacId && inverterOrPlant === 'inverter'
+      && powerOrIrradiance === 'power') {
+        // TODO must itterate over this array before can save them.
+        const tempInverterPowerTimeStamp  = new inverterPower({
+          Date: dataFromIngest.Date,
+          Value: dataFromIngest.Value,
+        });
+        console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
+        \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
+        ${tempPlantPowerTimeStamp}`);
+
+      // tempPlantPowerTimeStamp.save(function (err, tempPlantPowerTimeStamp) {
+        // if (err) return console.error(err);
+      // });
+    }
 }
 
 // make array of device info, for all facilities
@@ -404,8 +378,8 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
   const varUrlParam = (inverterOrPlantParam === 'inverter') ?
     `${baseUrl}/horizon/parametertovariable/deviceparameter` :
     `${baseUrl}/parametertovariable/facilityparameter`
-  // For testing purposes, limit number of inverters to 5 per plant
-  const arrSlice = arr.slice(0,2)
+  // For testing purposes, limit number of inverters to 4 per plant
+  const arrSlice = arr.slice(0,4)
   arr = arrSlice ? arrSlice : arr;
   return Promise.map(arr, async (inverter) => {
       let requestData = {};
@@ -518,10 +492,10 @@ async function getValues(arr, authStringParam, startDate, endDate) {
             error: error
           })
         });
-      dataResponse.data.forEach(dp => {
-        delete dp.DataSourceId;
-        return dp;
-      })
+      // dataResponse.data.forEach(dp => {
+      //   delete dp.DataSourceId;
+      //   return dp;
+      // })
       // let resultObj = {
       // DeviceId: variable.DeviceId,
       // Name: variable.Name,
@@ -578,107 +552,22 @@ function CustomErrorHandler(someObject) {
 
 
 let ingestThenAgr = async (startDate, endDate, facId) => {
-
   try {
-    // opens connection to mongodb
-    mongoose.connect(`${dbConnectionString}/instatrust-temp`, { useNewUrlParser: true });
-    const db = mongoose.connection;
-    db.on('error', console.error.bind(console, 'connection error:'));
-    db.once('open', async () => {
-      // we're connected!
-
-    let objInputToAgg = {};
+    // Now these functions will just be called and save to db from 'ingest' directly
     const powerAtPlantLevel = await ingest('plant', 'power', facId, startDate, endDate);
-    console.log('powerAtPlantLevel =',  powerAtPlantLevel)
-    // TODO: save this object to db under corresponding facility id.
-
     const irradianceAtPlantLevel = await ingest('plant', 'irradiance', facId, startDate, endDate);
-    // console.log('irradianceAtPlantLevel =', irradianceAtPlantLevel)
-    // TODO: save this object to db under corresponding facility id.
-
-    // outputs array of object. Each object is inverter
     const powerAtInverterLevel = await ingest('inverter', 'power', facId, startDate, endDate);
-    // console.log('powerAtInverterLevel =', powerAtInverterLevel)
-    // TODO: save this array to db under corresponding facility id.
 
-    // objInputToAgg = {
-    //   PowerAtPlantLevel: powerAtPlantLevel,
-    //   IrradianceAtPlantLevel: irradianceAtPlantLevel,
-    //   PowerAtInverterLevel: powerAtInverterLevel
-    // };
-    // console.log('objInputToAgg = ', JSON.stringify(objInputToAgg,null, 2));
+    // TODO: query the permenant db, then save those user input static values
+    // into this temp db which we well pass to gerardo's script next
 
-        const facilitySchema = new mongoose.Schema({
-          PowerAtPlantLevel: Array,
-          IrradianceAtPlantLevel: Array,
-          PowerAtInverterLevel: Array,
-          FacilityId: Number,
-          FacilityName: String,
-          PeakPower: Number,
-          NominalPower: Number,
-          Longitude: Number,
-          Latitude: Number,
-          TimeZone: String,
-          Country: String,
-          PVmoduleTechnology: String,
-          PVmoduleModel: String,
-          InverterTechnology: String,
-          InverterModel: String,
-          MountingStructure: String,
-          IrradianceSensor: String,
-          RevenueType: String,
-          Price: Number,
-          RemainingYears: Number,
-          ExpectedIRR: Number,
-          TotalOPEX: Number,
-          OandM: Number,
-          Taxes: Number,
-          P50Production: Number,
-          BudgetedPR: Number,
-          GuaranteedAvailability: Number
-        });
-        // So far so good. We've got a schema with one property, name, which
-        // will be a String. We will add a sayHello method as well The next step is
-        // compiling our schema into a Model.
-        facilitySchema.methods.sayHello = function () {
-          const greeting = this.PowerAtPlantLevel
-            ? "Meow PowerAtPlantLevel is " + this.PowerAtPlantLevel
-            : "I don't have a name";
-          console.log(greeting);
-        }
+    // TODO: Call gerardo's aggragation script here, which will access the data
+    // we've just saved in the temp db.
 
-        const Facility = mongoose.model('Facility', facilitySchema);
+    // TODO: recieve kpi's returned from aggregation script then save in
+    // instatrust permanent db.
 
-        // Functions added to the methods property of a schema get compiled into
-        // the Model prototype and exposed on each document instance:
-        const tempInputFacility = new Facility(
-          { FacilityId: facId,
-            PowerAtPlantLevel: powerAtPlantLevel,
-            IrradianceAtPlantLevel: irradianceAtPlantLevel,
-            PowerAtInverterLevel: powerAtInverterLevel
-          });
-        tempInputFacility.save(function (err, tempInputFacility) {
-          if (err) return console.error(err);
-          tempInputFacility.sayHello();
-        });
-
-        // Say time goes by and we want to display all the kittens we've seen.
-        // We can access all of the kitten documents through our Facility model.
-        Facility.find(function (err, facilities) {
-          if (err) return console.error(err);
-          console.log(facilities);
-        })
-
-        // We just logged all of the facilities in our db to the console. If we
-        // want to filter our facilities by name, Mongoose supports MongoDBs rich
-        // querying syntax.
-        Facility.find({ FacilityId: /^6/ }, values => {
-          console.log('values from kitten query = ', values)
-        });
-        // This performs a search for all documents with a name property that
-        // begins with "Fluff" and returns the result as an array of facilities to
-        // the callback.
-      });
+    // TODO: Delete temp db
 
 
   } catch (error) {
@@ -702,8 +591,9 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
   }
 }
 
-ingestThenAgr(1529452800, 1529539200, 6);
-
+// ingestThenAgr(1529452800, 1529539200, 6); // 1 día
+ingestThenAgr(1498046400, 1529539200, 6); // 1 año
+// ingestThenAgr(1434888000, 1529539200, 6); // 3 años
 /* Plan for loading in and aggregating all historical data (1 time process)
 Run ingest for all time (calling data and saving in in db) then loop over
 facilities calling the python script (which does aggregation for historical
