@@ -18,6 +18,9 @@ const plantIrradiance = require('./db/model/plantIrradiance');
 const Promise = require('bluebird');
 const axios = require('axios');
 
+var moment = require('moment');
+moment().format();
+
 // logger example
 const log4js = require('log4js');
 log4js.configure({
@@ -85,7 +88,9 @@ const baseUrl = process.env.BASE_URL_DEMO;
  * facility) OR if a 'optionalFacId had been supplied, ingest will return just
  * one object for the facility desired.
  */
+let ingestCounter = 1;
 async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDate, endDate) {
+  console.log(`ingest called for the ${ingestCounter++} time.`)
     const facilitiesUrl = `${baseUrl}/horizon/facilities`;
     const creds = {
       'username': username,
@@ -106,7 +111,6 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
           error: error
         })
       });
-
 
     const facilityIdsData = facilityIdsResponse.data;
     const oneFacilityData = facilityIdsData.filter(facility => {
@@ -147,48 +151,101 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
           error: error
           })
       });
+      let dataFromIngestFlat = [].concat.apply([], dataFromIngest);
     // console.log('valueof dataFromIngest = ', dataFromIngest)
     // console.log(`to be returned from ingest(${inverterOrPlant},${powerOrIrradiance}) = `, (optionalFacId && inverterOrPlant === 'plant'
       // && powerOrIrradiance === 'power') ? dataFromIngest[0] : dataFromIngest)
-    // return await (optionalFacId && inverterOrPlant === 'plant' && powerOrIrradiance === 'power') ? dataFromIngest[0] : dataFromIngest; // TODO: Question. Is this await necessary?
-    if (optionalFacId && inverterOrPlant === 'plant'
-      && powerOrIrradiance === 'power') {
-      const tempPlantPowerTimeStamp  = new plantPower({
-        Date: dataFromIngest[0].Date,
-        Value: dataFromIngest[0].Value,
-        });
-        console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
-        \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
-        ${tempPlantPowerTimeStamp}`);
-      tempPlantPowerTimeStamp.save(function (err, tempPlantPowerTimeStamp) {
-        if (err) return console.error(err);
-      });
-    }
-    else if (optionalFacId && inverterOrPlant === 'plant'
-      && powerOrIrradiance === 'irradiance') {
-      const tempPlantIrradianceTimeStamp = new plantIrradiance({
-        Date: dataFromIngest[0].Date,
-        Value: dataFromIngest[0].Value
-      });
-      console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
-      \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
-      ${tempPlantPowerTimeStamp}`);
-    }
-    else if (optionalFacId && inverterOrPlant === 'inverter'
-      && powerOrIrradiance === 'power') {
-        // TODO must itterate over this array before can save them.
-        const tempInverterPowerTimeStamp  = new inverterPower({
-          Date: dataFromIngest.Date,
-          Value: dataFromIngest.Value,
-        });
-        console.log(`ingest called with inverterOrPlant = ${inverterOrPlant},
-        \npowerOrIrradiance = ${powerOrIrradiance}, and will try to save: \n
-        ${tempPlantPowerTimeStamp}`);
+    // return await (optionalFacId && inverterOrPlant === 'plant' && powerOrIrradiance === 'power') ? dataFromIngest[0] : dataFromIngest;
 
-      // tempPlantPowerTimeStamp.save(function (err, tempPlantPowerTimeStamp) {
-        // if (err) return console.error(err);
-      // });
+    // console.time('save-all-gpm+-to-db')
+    try {
+      if (optionalFacId && inverterOrPlant === 'plant'
+        && powerOrIrradiance === 'power') {
+          console.time('save-plant-power-to-db')
+          const powerPlantPromiseMapResponse = await  Promise.map(dataFromIngestFlat, async (point) => {
+            let tempPlantPowerTimeStamp = new plantPower({
+              D: point.Date,
+              V: point.Value,
+              DsId: point.DataSourceId // TODO: this may not be needed
+            });
+            // console.log(` From ingest(${inverterOrPlant},${powerOrIrradiance}),
+            // \npossible model = `, JSON.stringify(
+            // tempPlantPowerTimeStamp,null, 2));
+            let plantPowerPromise = await tempPlantPowerTimeStamp.save()
+              .catch((error) => {
+                console.timeEnd('save-plant-power-to-db')
+                throw new CustomErrorHandler({
+                  code: 111,
+                  message: "Some problem saving tempPlantPower",
+                  error: error
+                })
+              });
+              // console.log('plantPowerPromise = ', plantPowerPromise);
+
+
+            // console.log('if this is needed, here is the returned promise after saving tempPlantPowerTimeStamp: ', plantPowerPromise);
+
+            // tempPlantPowerTimeStamp.save(function (err, tempPlantPowerTimeStamp) {
+            //   if (err) return console.error(err);
+            //   console.log(`Great success! Saved 'tempPlantPowerTimeStamp'= `, tempPlantPowerTimeStamp);
+            // });
+          });
+          console.timeEnd('save-plant-power-to-db')
+
+
+        // console.log(` From ingest(${inverterOrPlant},${powerOrIrradiance}),
+        // \ndataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
     }
+      else if (optionalFacId && inverterOrPlant === 'plant'
+        && powerOrIrradiance === 'irradiance') {
+        console.time('save-plant-irradiance-to-db')
+        dataFromIngestFlat.forEach(point => {
+          let tempPlantIrradianceTimeStamp = new plantIrradiance({
+            D: point.Date,
+            V: point.Value,
+            DsId: point.DataSourceId // TODO: this may not be needed
+
+          });
+          // console.log(` From ingest(${inverterOrPlant},${powerOrIrradiance}),
+          // \npossible model = `, JSON.stringify( tempPlantIrradianceTimeStamp,null, 2));
+          tempPlantIrradianceTimeStamp.save(function (err, tempPlantIrradianceTimeStamp) {
+            if (err) return console.error(err);
+          });
+        });
+        console.timeEnd('save-plant-irradiance-to-db')
+      }
+      else if (optionalFacId && inverterOrPlant === 'inverter'
+        && powerOrIrradiance === 'power') {
+        console.time('save-inverter-power-to-db')
+        dataFromIngestFlat.forEach(point => {
+          let tempInverterPowerTimeStamp = new inverterPower({
+            D: point.Date,
+            V: point.Value,
+            DsId: point.DataSourceId
+          });
+          // console.log(`From ingest(${inverterOrPlant},${powerOrIrradiance}),
+          // \n dataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
+          tempInverterPowerTimeStamp.save(function (err, tempInverterPowerTimeStamp) {
+            if (err) return console.error(err);
+          });
+        });
+        console.time('save-inverter-power-to-db')
+      }
+      // console.timeEnd('save-all-gpm+-to-db')
+
+      // console.log(`Great success! Saved 'tempPlantPowerTimeStamp'= `, tempPlantPowerTimeStamp);
+    } catch (error) {
+      // console.timeEnd('save-all-gpm+-to-db')
+      if (error.name === 'MongoError' && error.code === 11000) {
+        throw new CustomErrorHandler({
+          code: code,
+          message: "duplicate key error",
+          error: error
+          })
+      }
+    }
+
+
 }
 
 // make array of device info, for all facilities
@@ -350,13 +407,13 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
         // respObj.PeakPower = facility.PeakPower;
       }
       // console.log( 'In callFacilityVars, facility = ', facility);
-      console.log('respObj = ', respObj)
+      // console.log('respObj = ', respObj)
       if (facVarIdResponse.data) return respObj;
     }, {
       concurrency: 2
     })
     .then(values => {
-      console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
+      // console.log(`From callFacilityVars(), The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
       console.error('stuff failed in callFacilityVars(), in Promise.map');
@@ -413,7 +470,7 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
         }
       }
 
-      console.log('In callInverterVars(), requestData = ', requestData)
+      // console.log('In callInverterVars(), requestData = ', requestData)
       const variableIdResponse = await axios({
           method: 'post',
           url: varUrlParam,
@@ -455,7 +512,7 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
       concurrency: 2
     })
     .then(values => {
-      console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
+      // console.log(`The Variable ids for ${inverterOrPlantParam} = `, values)
       return values;
     }, function () {
       console.error('Something is Promise.map in callInverterVars() FAILED!')
@@ -547,7 +604,7 @@ async function getBearerString(authUrlParam, credsParam) {
 };
 
 function CustomErrorHandler(someObject) {
-  console.log(someObject)
+  console.trace(someObject)
 }
 
 
@@ -591,8 +648,9 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
   }
 }
 
-// ingestThenAgr(1529452800, 1529539200, 6); // 1 día
-ingestThenAgr(1498046400, 1529539200, 6); // 1 año
+ingestThenAgr(1529452800, 1529539200, 6); // 1 día
+// ingestThenAgr( 1545393600 , 1529539200, 6); // 6 meses
+// ingestThenAgr(1498046400, 1529539200, 6); // 1 año
 // ingestThenAgr(1434888000, 1529539200, 6); // 3 años
 /* Plan for loading in and aggregating all historical data (1 time process)
 Run ingest for all time (calling data and saving in in db) then loop over

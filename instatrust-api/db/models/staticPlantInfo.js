@@ -1,5 +1,6 @@
 'use strict';
-
+// TODO: take this out of here, and put in controller used to save this into the
+// instatrust db
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
