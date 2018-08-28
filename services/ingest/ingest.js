@@ -559,11 +559,11 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
 
         try {
           if (optionalFacId && inverterOrPlant === 'plant' &&
-            powerOrIrradiance === 'power') {
-            console.time('save-plant-power-to-db')
+          powerOrIrradiance === 'power') {
             // saves many instances of the plantPower model using
             // arrayOfTimeStamps' data
             plantPower.insertMany(arrayOfTimeStamps, function(error, arrayOfInsertedModels) {
+              console.time('save-plant-power-to-db')
               if (error) {
                 console.timeEnd('save-plant-power-to-db')
                 throw new CustomErrorHandler({
@@ -571,9 +571,9 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
                   message: "Some problem saving tempPlantPower",
                   error: error
                 });
-              } else {
-                console.log( `we just saved 'arrayOfInsertedModels' for 'plant power': `, arrayOfInsertedModels)
               }
+              console.log( `we just saved 'arrayOfInsertedModels' for 'plant power': `, arrayOfInsertedModels)
+              console.timeEnd('save-plant-power-to-db')
             }, {ordered: true});
 
             // // to loop over array and instantiate each model, then save
@@ -603,14 +603,13 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
             //       // \ndataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
             //     });
             //   });
-            console.timeEnd('save-plant-power-to-db')
           }
           else if (optionalFacId && inverterOrPlant === 'plant' &&
             powerOrIrradiance === 'irradiance') {
-            console.time('save-plant-irradiance-to-db')
-            // saves many instances of the plantPower model using
-            // arrayOfTimeStamps' data
-            plantIrradiance.insertMany(arrayOfTimeStamps, function (error, arrayOfInsertedModels) {
+              // saves many instances of the plantPower model using
+              // arrayOfTimeStamps' data
+              plantIrradiance.insertMany(arrayOfTimeStamps, function (error, arrayOfInsertedModels) {
+                console.time('save-plant-irradiance-to-db')
               if (error) {
                 console.timeEnd('save-plant-irradiance-to-db')
                 throw new CustomErrorHandler({
@@ -620,6 +619,7 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
                 });
               } else {
                 console.log( `we just saved 'arrayOfInsertedModels' for 'plant irradiance': `, arrayOfInsertedModels)
+                console.timeEnd('save-plant-irradiance-to-db')
               }
             }, {ordered: true});
 
@@ -638,25 +638,40 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
             //   });
             // });
 
-            console.timeEnd('save-plant-irradiance-to-db')
+
           } else if (optionalFacId && inverterOrPlant === 'inverter' &&
             powerOrIrradiance === 'power') {
-            console.time('save-inverter-power-to-db')
+              // saves many instances of the inverterPower model using
+              // arrayOfTimeStamps' data
+              inverterPower.insertMany(arrayOfTimeStamps, function (error, arrayOfInsertedModels) {
+                console.time('save-inverter-power-to-db')
+              if (error) {
+                console.timeEnd('save-inverter-power-to-db')
+                throw new CustomErrorHandler({
+                  code: 113,
+                  message: "Some problem saving tempPlantIrradiance",
+                  error: error
+                });
+              } else {
+                console.log( `we just saved 'arrayOfInsertedModels' for 'plant irradiance': `, arrayOfInsertedModels)
+                console.timeEnd('save-inverter-power-to-db')
+              }
+            }, {ordered: true});
 
-
-            arrayOfTimeStamps.forEach(point => {
-              let tempInverterPowerTimeStamp = new inverterPower({
-                Date: point.Date,
-                Value: point.Value,
-                DataSourceId: point.DataSourceId
-              });
-              // console.log(`From ingest(${inverterOrPlant},${powerOrIrradiance}),
-              // \n dataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
-              tempInverterPowerTimeStamp.save(function (error, tempInverterPowerTimeStamp) {
-                if (error) return console.error(error);
-              });
-            });
-            console.timeEnd('save-inverter-power-to-db')
+            // // This is the old school way of looping over array and writing each
+            // // one
+            // arrayOfTimeStamps.forEach(point => {
+            //   let tempInverterPowerTimeStamp = new inverterPower({
+            //     Date: point.Date,
+            //     Value: point.Value,
+            //     DataSourceId: point.DataSourceId
+            //   });
+            //   // console.log(`From ingest(${inverterOrPlant},${powerOrIrradiance}),
+            //   // \n dataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
+            //   tempInverterPowerTimeStamp.save(function (error, tempInverterPowerTimeStamp) {
+            //     if (error) return console.error(error);
+            //   });
+            // });
           }
 
           // console.log(`Great success! Saved 'tempPlantPowerTimeStamp'= `, tempPlantPowerTimeStamp);
