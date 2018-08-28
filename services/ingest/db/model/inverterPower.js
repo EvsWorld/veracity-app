@@ -4,9 +4,9 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const InverterPowerSchema = new Schema({
-  D: Date,
-  V: Number,
-  DsId: Number
+  Date: Date,
+  Value: Number,
+  DataSourceId: Number
 });
 
 module.exports = mongoose.model('InverterPower', InverterPowerSchema);
