@@ -6,7 +6,7 @@ const Schema = mongoose.Schema;
 const PlantPowerSchema = new Schema({
   Date: Date,
   Value: Number,
-  : Number
+  DataSourceId: Number
 });
 
 module.exports = mongoose.model('PlantPower', PlantPowerSchema);
