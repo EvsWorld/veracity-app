@@ -2,13 +2,13 @@
   // Hover to view descriptions of existing attributes.
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   // https://github.com/Microsoft/vscode-recipes/tree/master/nodemon
-  /*  You will need to create a debugger configuration file launch.json for your 
-  Express application. Click on the Debug icon in the Activity Bar and then 
-  the Configure gear icon at the top of the Debug view to create a default 
-  launch.json file. Select the Node.js environment by ensuring that the type 
-  property in configurations is set to "node". When the file is first created, 
-  VS Code will look in package.json for a start script and will use that value 
-  as the program (which in this case is "${workspaceFolder}\\bin\\www) for the 
+  /*  You will need to create a debugger configuration file launch.json for your
+  Express application. Click on the Debug icon in the Activity Bar and then
+  the Configure gear icon at the top of the Debug view to create a default
+  launch.json file. Select the Node.js environment by ensuring that the type
+  property in configurations is set to "node". When the file is first created,
+  VS Code will look in package.json for a start script and will use that value
+  as the program (which in this case is "${workspaceFolder}\\bin\\www) for the
   Launch Program configuration.*/
 {
     "version": "0.2.0",
@@ -40,7 +40,10 @@
             "skipFiles": [
                 "${workspaceFolder}/node_modules/**/*.js",
                 "${workspaceFolder}/lib/**/*.js"
-              ]
+            ],
+            "runtimeArgs": [
+                "--max-old-space-size=4096"
+            ]
         },
         {
             "type": "node",
@@ -53,7 +56,7 @@
             "skipFiles": [
                 "${workspaceFolder}/instatrust-api/node_modules/**/*.js",
                 "${workspaceFolder}/instatrust-api/lib/**/*.js"
-              ]
+            ]
         },
         {
             "type": "node",

@@ -13,9 +13,9 @@ const dbConnectionString = process.env.MONGODB_LOCAL_CON_STRING;
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
 const mongooseOptions = {
-    socketTimeoutMS: 30000,
+    socketTimeoutMS: 100000,
     keepAlive: true,
-    reconnectTries: 30000,
+    reconnectTries: 100000,
     useNewUrlParser: true  // to handle some error re: deprecated
 };
 
