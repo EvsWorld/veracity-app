@@ -13,7 +13,7 @@ const { authConfig } = require('./config.js');
 /*  ExpressSession is used to store session info in memory so the user does not 
 have to re-authenticate on every request. */
 const expressSession = require('express-session');
-//const dbConnection = require('./db');
+/* const dbConnection = require('./db'); */
 const MongoStore = require('connect-mongo')(expressSession);
 
 const cors = require('cors');
@@ -375,7 +375,7 @@ app.get('/api/services', helpers.ensureAuthenticated, (req, res) => {
 
 
 // app.use('/api1', helpers.ensureAuthenticated, api);
-//app.use('/api1', api); // with no authentication (unprotected)
+// app.use('/api1', api); // with no authentication (unprotected)
 
 // with the router and route handler all in one
 app.get('/api1/heroes', (req, res) => {
@@ -402,6 +402,7 @@ app.get('/api1/heroes', (req, res) => {
 var fakeDb = [
     {
       _id: "45xr8",
+      facilityId: 2323,
       asset: "171 MWp- 1 Axis Trackers- USA (California)",
       size: "171",
       location: "USA",
@@ -409,47 +410,70 @@ var fakeDb = [
       continent: "America",
       mountingSystem: "1 Axis Tracker",
       panelTech: "Polycrystalline",
-      COD: "2018",
+
+      price: "XXXX",
+      totalOpex: "XXXX",
+      omCosts: "XXXX",
+      expectedIrr: "XXXX",
+      totalTaxes: "XXXX",
+      budgetedProduction: "XXXX",
+      budgetedPr: "XXXX",
+      guaranteedavailability: "XXXX",
+
+      COD: "2022",
+      technology: "Solar",
       startOfOperation: "04-20-2018",
       pic: "SolarAssetPic",
-      peakPower: "171,720",
-      nominalPower: "132,500",
+      peakPower: 232,
+      nominalPower: 2323,
       inverters: "106 x Power Electronics String Inverters 13,250 kVA",
       trackers: "25,440 x First Solar trackers",
       pvModules: "1,756,800 x First Solar 112kW Modules",
-      latitude: "41.390205",
-      longitude: "‎2.154007",
+      latitude: 434,
+      longitude: 3434,
       revenueStream: "PPA",
       remainingYears: "10",
       Irradiance: "1000 W/m^2",
       timeZone: "(GMT-11:00) Pago Pago",
-      score: [{ performanceScore: "High", 
+      visible: true, 
+      score: [{ performanceScore: "High",
       performanceRatio: "", availability: "", 
       powerSteadiness: "", inverterReliability: "", repairResponsiveness: ""},
-      
       {dataQualityScore: "High", dataAvailability: "", irradianceSensorsQuality: "", 
       periodOfData: "", communicationReliability: ""}]
   },
   {
     _id: "45xr9",
-    asset: "171 MWp- 1 Axis Trackers- USA (California)",
+    facilityId: 2323,
+    asset: "171 MWp- 2 Axis Trackers- USA (California)",
     size: "171",
     location: "USA",
     region: "California",
     continent: "America",
-    mountingSystem: "1 Axis Tracker",
+    mountingSystem: "1 Axis Tracker",                                         
     panelTech: "Polycrystalline",
+
+    price: "XXXX",
+    totalOpex: "XXXX",
+    omCosts: "XXXX",
+    expectedIrr: "XXXX",
+    totalTaxes: "XXXX",
+    budgetedProduction: "XXXX",
+    budgetedPr: "XXXX",
+    guaranteedavailability: "XXXX",
+
     COD: "2018",
+    technology: "Solar",
     startOfOperation: "04-20-2018",
     pic: "SolarAssetPic",
-    peakPower: "171,720",
-    nominalPower: "132,500",
+    peakPower: 2323,
+    nominalPower: 2323,
     inverters: "106 x Power Electronics String Inverters 13,250 kVA",
     trackers: "25,440 x First Solar trackers",
     pvModules: "1,756,800 x First Solar 112kW Modules",
-    latitude: "41.390205",
-    longitude: "‎2.154007",
-    revenueStream: "PPA",
+    latitude: 23233,
+    longitude: 5454,
+    revenueType: "PPA",
     remainingYears: "10",
     Irradiance: "1000 W/m^2",
     timeZone: "(GMT-11:00) Pago Pago",
@@ -457,17 +481,59 @@ var fakeDb = [
     score: [{ performanceScore: "High", 
     performanceRatio: "", availability: "", 
     powerSteadiness: "", inverterReliability: "", repairResponsiveness: ""},
-    
     {dataQualityScore: "High", dataAvailability: "", irradianceSensorsQuality: "", 
     periodOfData: "", communicationReliability: ""}]
-}
-]
+  }
+];
+
+var ppaProjects = [
+
+        {
+          "_id": "45xr8",
+          "asset": "Aurora",
+          "size": "171",
+          "location": "USA",
+          "region": "California",
+          "continent": "America",
+          "COD": "2020",
+          "commercialOperationDate": "20/06/2020",
+          "score": "moderate",
+          "technology": "Solar",
+          "pic": "SolarAssetPic",
+          "latitude": "41.390205",
+          "longitude": "‎2.154007",
+          "commercialOperationDate": "20/06/2020",
+          "additionality": "XXXX",
+          "schedule": "XXXX",
+          "location": "XXXX",
+          "production": "XXXX",
+          "vppa/hedge": "XXXX",
+          "interconnection": "XXXX",
+          "feasibility": "XXXX",
+          "permitting": "XXXX",
+          "technology": "XXXX",
+          "siteControl": "XXXX"
+      }
+];
+
+var RequestForProposal = [
+    {
+      "_id": "45xr8",
+      "size": "200",
+      "technology": "Wind",
+      "location": "Nordics",
+      "company": "A",
+      "issued": "01/09/18",
+      "proposalDue": "01/11/18",
+      "minGenerationCapacity": "2",
+      "maxGenerationCapacity": "150",
+      "rfpPdf": "file?"
+  }
+];
 
 var fakeUserProfile = [
   { _id: "324hff", favourites: ["45xr8", "45xr10"] },
-]
-
-
+];
 
 //Route for Marketplace page.
 
@@ -523,12 +589,12 @@ app.get('/api1/allAssets', (req, res) => {
   */
 
   var assets = fakeDb;
-  var response = []
+  var response = [];
 
-  var favourites = fakeUserProfile[0].favourites
+  var favourites = fakeUserProfile[0].favourites;
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
     var individualAsset = new Object();
     
     favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
@@ -547,15 +613,15 @@ app.get('/api1/allAssets', (req, res) => {
     individualAsset.region = val.region
     individualAsset.continent = val.continent
 
-    response.push(individualAsset)
+    response.push(individualAsset);
 
-  })
+  });
       
   res.json(response);
    
 });
 
-//route for favourites
+// route for favourites
 
 /*
 Info needed for favourites -
@@ -569,11 +635,11 @@ plant id from users profile (favourites)
 app.get('/api1/favourites', (req, res) => {
 
   var assets = fakeDb;
-  var response = []
-  var favourites = fakeUserProfile[0].favourites
+  var response = [];
+  var favourites = fakeUserProfile[0].favourites;
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
     var individualAsset = new Object();
     if(favourites.indexOf(val._id) != -1){
       individualAsset._id = val._id
@@ -590,16 +656,16 @@ app.get('/api1/favourites', (req, res) => {
       individualAsset.region = val.region
       individualAsset.continent = val.continent
 
-      response.push(individualAsset)
+      response.push(individualAsset);
     }
    
-  })
+  });
       
   res.json(response);
    
 });
 
-//route for My Assets
+// route for My Assets
 
 /*
 
@@ -612,10 +678,10 @@ Need users profile information to obtain plant id´s
 app.get('/api1/myAssets', (req, res) => {
 
   var assets = fakeDb;
-  var response = []
+  var response = [];
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
     var individualAsset = new Object();
     individualAsset._id = val._id
     individualAsset.asset = val.asset
@@ -632,9 +698,9 @@ app.get('/api1/myAssets', (req, res) => {
     individualAsset.continent = val.continent
     individualAsset.visible = val.visible
 
-    response.push(individualAsset)
+    response.push(individualAsset);
 
-  })
+  });
       
   res.json(response);
    
@@ -642,28 +708,64 @@ app.get('/api1/myAssets', (req, res) => {
 
 
 
-//route for Add asset (automatically add asset when selected)
+// route for Add asset (automatically add asset when selected)
 /*
   Information for every input in the form
 
   make sure apiary contains all of this information
 */
 
-app.get('/api1/addAsset', (req, res) => {
+//addAssetPage for dropdown input
+/*this will be triggered onComponentMount()*/
+
+
+app.get('/api1/addAssetPageDropdown', (req, res) => {
 
   var assets = fakeDb;
-  var response = []
+  var response = [];
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
+    var individualAsset = new Object();
+    
+    individualAsset.name = val.asset;
+    individualAsset.id = val._id;
+
+    response.push(individualAsset);
+
+  });
+      
+  res.json(response);
+   
+});
+
+
+//will need individual plant id as a parameter
+/*This will be triggered when user selects from drop down*/
+app.post('/api1/addAssetPage', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+
+  console.log("AddassetPage Called!")
+  //Asset info in req.body
+  console.log(req.body.id)
+  var id = req.body.id
+  
+  assets.forEach(function(val, i){
+
+   if (id === val._id){
     var individualAsset = new Object();
     individualAsset._id = val._id
     individualAsset.asset = val.asset
-    individualAsset.location = val.location
-    individualAsset.mountingSystem = val.mountingSystem
-    individualAsset.panelTech = val.panelTech
-    individualAsset.COD = val.COD
+
+    individualAsset.location = val.location     
+    individualAsset.mountingSystem = val.mountingSystem 
+
+    
+    
     individualAsset.size = val.size
+    individualAsset.technology = val.technology
     individualAsset.performanceScore = val.score[0].performanceScore
     individualAsset.dataQualityScore = val.score[1].dataQualityScore
     individualAsset.latitude = val.latitude
@@ -680,17 +782,34 @@ app.get('/api1/addAsset', (req, res) => {
     individualAsset.inverter = val.inverter
     individualAsset.mountingStructure = val.mountingStructure
 
+  
+    individualAsset.revenueType = val.revenueType
+    individualAsset.price = val.price
+    individualAsset.remainingYears = val.remainingYears
+    individualAsset.totalOpex = val.totalOpex
+    individualAsset.omCosts = val.omCosts
+    individualAsset.expectedIrr = val.expectedIrr
+    individualAsset.totalTaxes = val.totalTaxes
+
+    individualAsset.budgetedProduction = val.budgetedProduction
+    individualAsset.budgetedPr = val.budgetedPr
+    individualAsset.guaranteedAvailability = val.guaranteedAvailability
 
     response.push(individualAsset)
 
-  })
+   }
+    
+  });
       
   res.json(response);
+  
    
 });
 
 
-//route for asset page
+
+
+// route for asset page
 
   /*
     Also need favourite info from users profile
@@ -704,7 +823,7 @@ app.get('/api1/assetPage', (req, res) => {
   var favourites = fakeUserProfile[0].favourites
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
     var individualAsset = new Object();
 
     favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
@@ -739,7 +858,7 @@ app.get('/api1/assetPage', (req, res) => {
 
     response.push(individualAsset)
 
-  })
+  });
       
   res.json(response);
    
@@ -747,7 +866,7 @@ app.get('/api1/assetPage', (req, res) => {
 
 
 
-//route for benchmark page
+// route for benchmark page
 
     /*
     We also need the below -
@@ -763,16 +882,16 @@ app.get('/api1/benchmark', (req, res) => {
   var favourites = fakeUserProfile[0].favourites
 
   assets.forEach(function(val, i){
-    /*Sort through all assets and return information needed*/
+    /* Sort through all assets and return information needed */
     var individualAsset = new Object();
     favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
-      individualAsset._id = val._id
-      individualAsset.region = val.region
-      individualAsset.location = val.location
-      individualAsset.typeOfFacility = val.typeOfFacility
-      individualAsset.size = val.size
+      individualAsset._id = val._id 
+      individualAsset.region = val.region 
+      individualAsset.location = val.location 
+      individualAsset.typeOfFacility = val.typeOfFacility 
+      individualAsset.size = val.size 
 
-      individualAsset.performanceScore = val.score[0].performanceScore
+      individualAsset.performanceScore = val.score[0].performanceScore 
       individualAsset.performanceRatio = val.score[0].performanceRatio
       individualAsset.availability = val.score[0].availability
       individualAsset.powerSteadiness = val.score[0].powerSteadiness
@@ -790,7 +909,7 @@ app.get('/api1/benchmark', (req, res) => {
     */
     response.push(individualAsset)
 
-  })
+  });
       
   res.json(response);
    
@@ -824,6 +943,50 @@ continent
 */
 
 
+app.get('/api1/ppaMarketplace', (req, res) => {
+
+  /*
+   Will also need favourite information from users profile
+  */
+
+  var assets = fakeDb;
+  var response = [];
+
+  var favourites = fakeUserProfile[0].favourites;
+
+  assets.forEach(function(val, i){
+    /* Sort through all assets and return information needed 
+    
+      Check this with ppa marketplace
+      make sure info for filters is returned.
+    */
+    var individualAsset = new Object();
+    
+    favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
+    individualAsset._id = val._id
+    individualAsset.asset = val.project
+    individualAsset.location = val.location
+    individualAsset.location = val.technology
+    individualAsset.COD = val.COD
+    individualAsset.size = val.size
+    individualAsset.score = val.score
+    individualAsset.pic = val.pic
+    individualAsset.expectedProduction = val.expectedProduction
+    individualAsset.region = val.region
+    individualAsset.continent = val.continent
+    individualAsset.operationDate = val.operationDate
+
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+
+
+
+
 
 
 /*
@@ -832,7 +995,12 @@ Route for ppaFavourites
 
 
 _id
-asset
+
+region
+score
+expectedProduction
+
+projectName
 size
 location
 mountingSystem
@@ -849,6 +1017,80 @@ expectedProduction
 
 */
 
+app.get('/api1/ppaFavourites', (req, res) => {
+
+  /*
+   Will also need favourite information from users profile
+  */
+
+  var assets = fakeDb;
+  var response = [];
+
+  var favourites = fakeUserProfile[0].favourites;
+
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+    if(favourites.indexOf(val._id) != -1){
+      favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
+      /*Need to get the tags from favourites*/
+      individualAsset._id = val._id
+      individualAsset.asset = val.project
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.COD = val.COD
+      individualAsset.size = val.size
+      individualAsset.score = val.score
+      individualAsset.expectedProduction = val.expectedProduction
+      individualAsset.region = val.region
+      individualAsset.continent = val.continent
+      individualAsset.operationDate = val.operationDate
+    }
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+
+
+app.get('/api1/rfpFavourites', (req, res) => {
+
+  /*
+   Will also need favourite information from users profile
+  */
+
+  var assets = fakeDb;
+  var response = [];
+
+  var favourites = fakeUserProfile[0].favourites;
+
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+    if(favourites.indexOf(val._id) != -1){
+      favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
+      /*Need to get the tags from favourites*/
+      individualAsset._id = val._id
+      individualAsset.asset = val.project
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.COD = val.COD
+      individualAsset.size = val.size
+      individualAsset.score = val.score
+      individualAsset.expectedProduction = val.expectedProduction
+      individualAsset.region = val.region
+      individualAsset.continent = val.continent
+      individualAsset.operationDate = val.operationDate
+    }
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
 /*
 Route for Ppa assetPage
 
@@ -859,7 +1101,7 @@ _id
 asset
 pic
 
-score 
+overallScore 
 additionalityScore
 scheduleScore
 locationScore
@@ -879,9 +1121,297 @@ longitude
 
 
 */
+app.get('/api1/ppaAssetPage', (req, res) => {
+
+  /*
+   Will also need favourite information from users profile
+  */
+
+  var assets = fakeDb;
+  var response = [];
+
+  var favourites = fakeUserProfile[0].favourites;
+
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+ 
+      favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
+     
+      individualAsset._id = val._id
+      individualAsset._id = val.pic
+      individualAsset.project = val.project
+      individualAsset.latitude = val.latitude
+      individualAsset.longitude = val.longitude
+
+      individualAsset.overallScore = val.overallScore
+      individualAsset.additionalityScore = val.additionalityScore
+      individualAsset.scheduleScore = val.scheduleScore
+      individualAsset.locationScore = val.locationScore
+      individualAsset.productionScore = val.productionScore
+      individualAsset.vppaHedgeScore = val.vppaHedgeScore
+
+      individualAsset.interconnectionScore = val.interconnectionScore
+      individualAsset.feasibilityScore = val.feasibilityScore
+      individualAsset.permittingScore = val.permittingScore
+      individualAsset.technologyScore = val.technologyScore
+      individualAsset.siteControlScore = val.siteControlScore
+
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.COD = val.COD
+      individualAsset.size = val.size
+      individualAsset.score = val.score
+      individualAsset.expectedProduction = val.expectedProduction
+      individualAsset.region = val.region
+      individualAsset.continent = val.continent
+      individualAsset.operationDate = val.operationDate
+
+      //Asset details (havent been added to design yet)
+    
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+/*
+Manage RFP route
+
+company
+size
+location
+technology
+issued
+due
+
+*/
+
+
+app.get('/api1/manageRfp', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+ 
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+      
+      individualAsset._id = val._id
+      individualAsset.company = val.company
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.size = val.size
+      individualAsset.issued = val.issue
+      individualAsset.due = val.due
+      
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+/*
+
+Ppa submissions
+to be taken from the submissions collection for this RFP
+
+      project
+      
+      owners contact details?
+
+      individualAsset.latitude = val.latitude
+      individualAsset.longitude = val.longitude
+
+      individualAsset.overallScore = val.overallScore
+      individualAsset.additionalityScore = val.additionalityScore
+      individualAsset.scheduleScore = val.scheduleScore
+      individualAsset.locationScore = val.locationScore
+      individualAsset.productionScore = val.productionScore
+      individualAsset.vppaHedgeScore = val.vppaHedgeScore
+
+      individualAsset.interconnectionScore = val.interconnectionScore
+      individualAsset.feasibilityScore = val.feasibilityScore
+      individualAsset.permittingScore = val.permittingScore
+      individualAsset.technologyScore = val.technologyScore
+      individualAsset.siteControlScore = val.siteControlScore
+
+*/
+
+app.get('/api1/rfpSubmissions', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+ 
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+      
+      individualAsset._id = val._id
+      individualAsset.project = val.project     
+      individualAsset.latitude = val.latitude
+      individualAsset.longitude = val.longitude
+
+      individualAsset.overallScore = val.overallScore
+      individualAsset.additionalityScore = val.additionalityScore
+      individualAsset.scheduleScore = val.scheduleScore
+      individualAsset.locationScore = val.locationScore
+      individualAsset.productionScore = val.productionScore
+      individualAsset.vppaHedgeScore = val.vppaHedgeScore
+
+      individualAsset.interconnectionScore = val.interconnectionScore
+      individualAsset.feasibilityScore = val.feasibilityScore
+      individualAsset.permittingScore = val.permittingScore
+      individualAsset.technologyScore = val.technologyScore
+      individualAsset.siteControlScore = val.siteControlScore
+
+      individualAsset.contactDetails = val.contactDetails
+      
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
 
 
 
+/*End of PPA routes*/
+
+
+
+/*PPA project owner side*/
+
+/*
+My projects page
+
+project
+size
+location
+technology
+cod
+score
+visible?
+expected production
+
+region
+country
+continent
+typeOfEnergy
+operationdate
+
+messages received?
+
+*/
+
+
+app.get('/api1/ppaMyProjects', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+ 
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+      
+      individualAsset._id = val._id
+      individualAsset.project = val.project
+      individualAsset.size = val.size
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.cod = val.COD
+      individualAsset.score = val.score
+
+      individualAsset.visible = val.visible
+      individualAsset.expectedProduction = val.expectedProduction
+
+      individualAsset.region = val.region
+      individualAsset.country = val.country
+      individualAsset.continent = val.continent
+      individualAsset.typeOfEnergy = val.typeOfEnergy
+      individualAsset.operationDate = val.operationDate
+      individualAsset.messagesReceived = val.messagesReceived
+
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+/*
+ppa Active RFP
+
+companyLogo
+company
+location
+technology
+size
+issued
+proposalDue
+minGenerationCapacity
+maxGenerationCapacity
+
+*/
+
+app.get('/api1/ppaActiveRfp', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+ 
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+      
+      individualAsset._id = val._id
+      individualAsset.companyLogo = val.companyLogo
+      individualAsset.company = val.company
+      individualAsset.size = val.size
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.issued = val.issued
+      individualAsset.proposalDue = val.proposalDue
+      individualAsset.minGenerationCapacity = val.minGenerationCapacity
+      individualAsset.maxGenerationCapacity = val.maxGenerationCapacity
+
+      individualAsset.rfpPdf = val.rfpPdf
+      individualAsset.questionsAndAnswers = val.questionsAndAnswers
+    
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
+});
+
+
+/*
+  %%%%%%%%%%%%%%%
+  SAVING/UPDATING
+  %%%%%%%%%%%%%%%
+*/
+
+app.post('/api1/saveAsset', (req, res) => {
+
+  console.log("Save asset called!")
+  //Asset info in req.body
+  console.log(req.body)
+
+
+   
+});
+
+
+
+
+
+
+
+
+
+/*End PPA project owner side*/
 
 
 
