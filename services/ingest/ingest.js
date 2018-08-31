@@ -176,11 +176,11 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
   // based on inverterOrPlant and powerOrIrradiance, we call for the
   // appropriate parameterId
   let invertersArray = await getInverterInfo(facilityIdArray, authString, inverterOrPlant, powerOrIrradiance)
-    .catch((error) => {
+    .catch((err) => {
       throw new CustomErrorHandler({
         code: 104,
         message: "invertersArray/getInverterInfo failed",
-        error: error
+        error: err
       })
     });
   // variablesIds become an array of objects which have a VariableId key
@@ -192,11 +192,11 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
   // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
 
   const dataFromIngest = await getValues(inverterOrPlant, powerOrIrradiance, optionalFacId, variableIds, authString, startDate, endDate)
-    .catch((error) => {
+    .catch((err) => {
       throw new CustomErrorHandlerEx({
         code: 104,
         message: "dataArray/getValues failed",
-        error: Error
+        error: err
       })
     });
   // let dataFromIngestFlat = [].concat.apply([], dataFromIngest);
@@ -220,11 +220,11 @@ async function getInverterInfo(facilityIdArray, authStringParam, inverterOrPlant
             'Authorization': authStringParam
           }
         })
-        .catch((error) => {
+        .catch((err) => {
           throw new CustomErrorHandler({
             code: 101,
             message: "invertersArrayNotFlat failed",
-            error: error
+            error: err
           })
         });
       if (response.data) return response.data // array of inverters
@@ -361,11 +361,11 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
           data: requestData,
           headers: { 'Authorization': authStringParam }
         })
-        .catch((error) => {
+        .catch((err) => {
           throw new CustomErrorHandlerEx({
             code: 105,
             message: "facVarIdResponse failed",
-            error: error
+            error: err
           })
         });
 
@@ -468,11 +468,11 @@ async function callInverterVars(arr, authStringParam, inverterOrPlantParam, powe
             'Authorization': authStringParam
           }
         })
-        .catch((error) => {
+        .catch((err) => {
           throw new CustomErrorHandler({
             code: 102,
             message: "variableIdResponse failed",
-            error: error
+            error: err
           })
         });
 
@@ -520,7 +520,7 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
   console.time('save-collection-to-db')
   return Promise.map(arr, async (variableObj, index) => {
       console.log(`In 'getValues(), we just entered` +
-        ` Promise.map() for the ${index} time. \nFor this loop, variable = ${JSON.stringify(variableOb)}`);
+        ` Promise.map() for the ${index} time. \nFor this loop, variableObj = ${JSON.stringify(variableObj)}`);
       const dataResponse = await axios({
           method: 'get',
           url: dataListUrl,
@@ -535,11 +535,11 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
             grouping: 'raw'
           }
         })
-        .catch((error) => {
+        .catch((err) => {
           throw new CustomErrorHandlerEx({
             code: 106,
             message: "dataResponse failed",
-            error: error
+            error: err
           })
         });
       // let resultObj = {DeviceId: variable.DeviceId, Name:
@@ -565,15 +565,15 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           // overflow the heap limit
           const tempArrayOfArraysToInsert = chunkArray(arrayOfTimeStamps, 1000);
           tempArrayOfArraysToInsert.forEach(chunk => {
-            plantPower.insertMany(chunk, function (error, arrayOfInsertedModels) {
+            plantPower.insertMany(chunk, function (err, arrayOfInsertedModels) {
 
               console.time('save-plant-power-to-db')
-              if (error) {
+              if (err) {
                 console.timeEnd('save-plant-power-to-db')
                 throw new CustomErrorHandler({
                   code: 111,
                   message: "Some problem saving tempPlantPower",
-                  error: error
+                  error: err
                 });
               }
               console.log(`we just saved 'arrayOfInsertedModels' for 'plant power'. ` +
@@ -594,14 +594,14 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           const tempArrayOfArraysToInsert = chunkArray(arrayOfTimeStamps, 1000);
           // TODO: this should be converted to promise.map()
           tempArrayOfArraysToInsert.forEach(async chunk => {
-            await plantIrradiance.insertMany(chunk, function (error, arrayOfInsertedModels) {
+            await plantIrradiance.insertMany(chunk, function (err, arrayOfInsertedModels) {
               console.time('save-plant-irradiance-to-db')
-              if (error) {
+              if (err) {
                 console.timeEnd('save-plant-irradiance-to-db')
                 throw new CustomErrorHandler({
                   code: 112,
                   message: "Some problem saving tempPlantIrradiance",
-                  error: error
+                  error: err
                 });
               } else {
                 console.log(`we just saved 'arrayOfInsertedModels' for 'plant irradiance'. ` +
@@ -626,14 +626,14 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
               console.log(`In 'getValues(), we just entered` +
                 ` Promise.map() for the ${index} time. \nFor this loop, variable = ${JSON.stringify(variable)}`);
               if (!chunk) return;
-              inverterPower.insertMany(chunk, function (error, arrayOfInsertedModels) {
+              inverterPower.insertMany(chunk, function (err, arrayOfInsertedModels) {
                 console.time('save-plant-irradiance-to-db')
-                if (error) {
+                if (err) {
                   console.timeEnd('save-plant-irradiance-to-db')
                   throw new CustomErrorHandler({
                     code: 112,
                     message: "Some problem saving tempPlantIrradiance",
-                    error: error
+                    error: err
                   });
                 } else {
                   console.log(`we just saved 'arrayOfInsertedModels' for 'inverter power'. ` +
@@ -653,16 +653,18 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
             }, function () {
               console.log('Inner Promise.map() failed in getValues')
             });
-        } else if (optionalFacId && inverterOrPlant === 'staticInfo' &&
+        }
+        else if (optionalFacId && inverterOrPlant === 'staticInfo' &&
           powerOrIrradiance === 'staticInfo') {
+            console.log(`From static method of getValues(), 'arrayOfTimeStamps[0]' = `, arrayOfTimeStamps[0])
           let staticValsPlantInstance = new staticValsPlant({
             // FacilityId: '???,'
-            FacilityName: variableObj.plantName,
-            PeakPower: variableObj.peakPower,
-            NominalPower: variableObj.plantNominalPower,
-            LatAndLong: variableObj.latAndLong,
-            TimeZone: variableObj.timeZone,
-            Country: variableObj.country,
+            FacilityName: variableObj.PlantName,
+            PeakPower: variableObj.PeakPower,
+            NominalPower: variableObj.PlantNominalPower,
+            LatAndLong: variableObj.LatAndLong,
+            TimeZone: variableObj.TimeZone,
+            Country: variableObj.Country,
             PVmoduleTechnology: '???',
             PVmoduleModel: '???',
             InverterTechnology: '???',
@@ -682,13 +684,13 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           });
           // console.log(`From ingest(${inverterOrPlant},${powerOrIrradiance}),
           // \n dataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
-          staticValsPlantInstance.save(function (error, staticValsPlantInstance) {
-            if (error) {
+          staticValsPlantInstance.save(function (err, staticValsPlantInstance) {
+            if (err) {
               console.timeEnd('save-plant-power-to-db')
               throw new CustomErrorHandler({
                 code: 111,
                 message: "Some problem saving tempPlantPower",
-                error: Error
+                error: err
               });
             }
             console.log(`Great success! Saved 'staticValsPlantInstance'= `, staticValsPlantInstance);
@@ -701,17 +703,17 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
             code: 111,
             message: `getValues() was not called with valid parameters so you didn't ` +
             `hit one of the if else blocks`,
-            error: Error
+            // error: err
           });
         }
         console.timeEnd('save-collection-to-db')
 
-      } catch (error) {
-        if (error.name === 'MongoError' && error.code === 11000) {
+      } catch (err) {
+        if (err.name === 'MongoError' && err.code === 11000) {
           throw new CustomErrorHandlerEx({
-            code: error.code,
+            code: err.code,
             message: "duplicate key error",
-            error: error
+            error: err
           })
         }
       }
@@ -727,11 +729,11 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
       // getValues(), outputing Array of datapoints = ',
       // JSON.stringify(values, null, 2));
       return values;
-    }, function (error) {
+    }, function (err) {
       throw new CustomErrorHandlerEx({
         code: 117,
         message: 'Promise.map() failed in getValues',
-        error: JSON.stringify(error, null, 2)
+        error: JSON.stringify(err, null, 2)
       })
     });
   // Take the second snapshot and compute the diff
@@ -755,11 +757,11 @@ async function getAuthString(usernameParam, passwordParam, authUrlParam) {
   let getTokenPromise = {}
   // console.log('credsParam = ', credsParam, 'authUrlParam = ', authUrlParam);
   getTokenPromise = await axios.post(authUrlParam, creds)
-    .catch((error) => {
+    .catch((err) => {
       throw new CustomErrorHandler({
         code: 107,
         message: "getAuthString/getTokenPromise failed",
-        error: error
+        error: err
       })
     });
   console.log('bearer string = ', 'Bearer '.concat(getTokenPromise.data.AccessToken));
@@ -787,11 +789,11 @@ async function getArrayOfFacilities(authString) {
     headers: {
       Authorization: authString
     }
-  }).catch((error) => {
+  }).catch((err) => {
     throw new CustomErrorHandlerEx({
       code: 109,
       message: "facilityIdsResponse failed",
-      error: error
+      error: err
     })
   });
   // array of facilities
@@ -822,24 +824,24 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
     // instatrust permanent db.
 
     // TODO: Delete temp db
-  } catch (error) {
-    if (error.response) {
+  } catch (err) {
+    if (err.response) {
       // The request was made and the server responded with a status code that
       // falls out of the range of 2xx
-      console.log('\nError, request made, but server responded with ...', error.response.data);
-      console.log('\nError.response.status = ', error.response.status);
-      console.log('\nError.response.headers = ', error.response.headers);
-    } else if (error.request) {
-      // The request was made but no response was received `error.request` is
+      console.log('\nError, request made, but server responded with ...', err.response.data);
+      console.log('\nError.response.status = ', err.response.status);
+      console.log('\nError.response.headers = ', err.response.headers);
+    } else if (err.request) {
+      // The request was made but no response was received `err.request` is
       // an instance of XMLHttpRequest in the browser and an instance of
       // http.ClientRequest in node.js
-      console.log('Error. Request made but no response received....', error.request);
+      console.log('Error. Request made but no response received....', err.request);
     } else {
       // Something happened in setting up the request that triggered an Error
-      console.log('Error in setting up request....', error.message);
+      console.log('Error in setting up request....', err.message);
     }
-    console.log('error.config = \n', error.config);
-    console.error('\n\n\n console.error = \n', error)
+    console.log('error.config = \n', err.config);
+    console.error('\n\n\n console.error = \n', err)
   }
 }
 
