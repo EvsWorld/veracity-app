@@ -1,5 +1,5 @@
 {
-  "extends": "eslint:recommended",
+  "extends": ["prettier","eslint:recommended"],
   "env": {
     "browser": false,
     "es6": true,
@@ -9,6 +9,7 @@
   "parserOptions": {
     "ecmaVersion": 6
   },
+  "plugins": ["react", "jsx-a11y","import"],
   "rules": {
     "object-curly-spacing": [2, "always"],
     "strict": 0,
@@ -20,7 +21,8 @@
     "spaced-comment": [2, "always"],
     "arrow-spacing": 2,
     "no-console": 0,
-    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }]
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }],
+    "brace-style": ["stroustrup", { "allowSingleLine": true }]
   },
   "globals": {
   }

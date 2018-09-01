@@ -5,10 +5,35 @@ mongoose.promise = Promise;
 
 // Define userSchema
 const userSchema = new Schema({
-		name: { type: String, unique: false, required: false },
-		id: { type: String, unique: false, required: false },
-		displayName: { type: String, unique: false, required: false },
-		access_token: { type: String, unique: false, required: false }
+	name: {
+		type: String,
+		unique: false,
+		required: false
+	},
+	id: {
+		type: String,
+		unique: false,
+		required: false
+	},
+	displayName: {
+		type: String,
+		unique: false,
+		required: false
+	},
+	access_token: {
+		type: String,
+		unique: false,
+		required: false
+	},
+	email: {
+		type: String,
+		required: true,
+		unique: true,
+		lowercase: true,
+		validate: value => {
+			return validator.isEmail(value);
+		}
+	}
 });
 
 // POSSIBLE:1 Define schema methods

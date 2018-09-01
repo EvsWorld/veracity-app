@@ -132,45 +132,6 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
       facilityIdArray.push(facility.Parameters[0].Key.FacilityId);
     }
   });
-  // // TODO: Save static values for facility here
-
-  let staticValsPlantInstance = new staticValsPlant({
-    // FacilityId: '???,'
-    // FacilityName: plantName,
-    FacilityName: 'This was saved in beginning of ingest()',
-    PeakPower: peakPower,
-    NominalPower: plantNominalPower,
-    LatAndLong: latAndLong,
-    TimeZone: timeZone,
-    Country: country,
-    PVmoduleTechnology: '???',
-    PVmoduleModel: '???',
-    InverterTechnology: '???',
-    InverterModel: '???',
-    MountingStructure: '???',
-    IrradianceSensor: '???',
-    RevenueType: '???',
-    Price: 99999999,
-    RemainingYears: 99999999,
-    ExpectedIRR: 99999999,
-    TotalOPEX: 99999999,
-    OandM: 99999999,
-    Taxes: 99999999,
-    P50Production: 99999999,
-    BudgetedPR: 99999999,
-    GuaranteedAvailability: 99999999
-  });
-  // console.log(`From ingest(${inverterOrPlant},${powerOrIrradiance}),
-  // \n dataFromIngest = `, JSON.stringify( dataFromIngest,null, 2));
-  staticValsPlantInstance.save(function (err, staticValsPlantInstance) {
-    if (err) return console.error(err);
-  });
-
-
-
-
-
-
 
   // to have all info for each inverter
   // based on inverterOrPlant and powerOrIrradiance, we call for the
@@ -187,8 +148,8 @@ async function ingest(inverterOrPlant, powerOrIrradiance, optionalFacId, startDa
   // console.log('invertersArray = ', await JSON.stringify(invertersArray, null, 2))
 
   let variableIds = (inverterOrPlant === 'inverter') ?
-    await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance) :
-    await callFacilityVars(facility_s, authString, 'plant', powerOrIrradiance)
+    await callInverterVars(invertersArray, authString, 'inverter', powerOrIrradiance):
+      await callFacilityVars(facility_s, authString, 'plant', powerOrIrradiance)
   // console.log('variableIds = ', await JSON.stringify(variableIds, null, 2))
 
   const dataFromIngest = await getValues(inverterOrPlant, powerOrIrradiance, optionalFacId, variableIds, authString, startDate, endDate)
@@ -359,7 +320,9 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
           method: 'post',
           url: varUrlParam,
           data: requestData,
-          headers: { 'Authorization': authStringParam }
+          headers: {
+            'Authorization': authStringParam
+          }
         })
         .catch((err) => {
           throw new CustomErrorHandlerEx({
@@ -382,7 +345,7 @@ async function callFacilityVars(arr, authStringParam, inverterOrPlantParam, powe
         // respObj.FacilityId = facVarIdResponse.data.Key.FacilityId;
         // respObj.DeviceId = facVarIdResponse.data.Key.DeviceId;
 
-         // Very important. Using VariableId to get the value
+        // Very important. Using VariableId to get the value
         respObj.VariableId = facVarIdResponse.data.Key.VariableId;
         respObj.DataName = facVarIdResponse.data.Name;
         respObj.Unit = facVarIdResponse.data.Unit;
@@ -521,6 +484,9 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
   return Promise.map(arr, async (variableObj, index) => {
       console.log(`In 'getValues(), we just entered` +
         ` Promise.map() for the ${index} time. \nFor this loop, variableObj = ${JSON.stringify(variableObj)}`);
+      console.time('time-1');
+      console.time('time-2');
+      console.timeEnd('time-6')
       const dataResponse = await axios({
           method: 'get',
           url: dataListUrl,
@@ -556,6 +522,7 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
       try {
         if (optionalFacId && inverterOrPlant === 'plant' &&
           powerOrIrradiance === 'power') {
+          console.time('time-4')
           // saves many instances of the plantPower model using
           // arrayOfTimeStamps' data
           console.log(`length of 'arrayOfTimeStamps' for plant power = `,
@@ -564,10 +531,13 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           // break up array OfTimeStamps into smaller arrays so it doesn't
           // overflow the heap limit
           const tempArrayOfArraysToInsert = chunkArray(arrayOfTimeStamps, 1000);
+          console.time('save-plant-power-to-db-1')
+          console.time('time-6')
+          console.time('time-5');
           tempArrayOfArraysToInsert.forEach(chunk => {
             plantPower.insertMany(chunk, function (err, arrayOfInsertedModels) {
 
-              console.time('save-plant-power-to-db')
+              console.time('save-plant-power-to-db-2')
               if (err) {
                 console.timeEnd('save-plant-power-to-db')
                 throw new CustomErrorHandler({
@@ -576,13 +546,16 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
                   error: err
                 });
               }
+              console.timeEnd('save-plant-power-to-db-1')
               console.log(`we just saved 'arrayOfInsertedModels' for 'plant power'. ` +
                 `Heres the first timestamp of that group: `, arrayOfInsertedModels[0])
             }, {
               ordered: true
             });
           })
-          console.timeEnd('save-plant-power-to-db')
+          console.timeEnd('save-plant-power-to-db-2')
+          console.timeEnd('save-plant-power-to-db-3')
+
 
         } else if (optionalFacId && inverterOrPlant === 'plant' &&
           powerOrIrradiance === 'irradiance') {
@@ -594,6 +567,7 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           const tempArrayOfArraysToInsert = chunkArray(arrayOfTimeStamps, 1000);
           // TODO: this should be converted to promise.map()
           tempArrayOfArraysToInsert.forEach(async chunk => {
+            console.time('time-6')
             await plantIrradiance.insertMany(chunk, function (err, arrayOfInsertedModels) {
               console.time('save-plant-irradiance-to-db')
               if (err) {
@@ -607,6 +581,8 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
                 console.log(`we just saved 'arrayOfInsertedModels' for 'plant irradiance'. ` +
                   `Heres the first timestamp of that group: `, arrayOfInsertedModels[0])
               }
+              console.timeEnd('time-5')
+              console.timeEnd('time-6')
             }, {
               ordered: true
             });
@@ -624,7 +600,7 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           console.timeEnd('save-inverter-power-to-db')
           await Promise.map(tempArrayOfArraysToInsert, async (chunk, index) => {
               console.log(`In 'getValues(), we just entered` +
-                ` Promise.map() for the ${index} time. \nFor this loop, variable = ${JSON.stringify(variable)}`);
+                ` Promise.map() for the ${index} time.`);
               if (!chunk) return;
               inverterPower.insertMany(chunk, function (err, arrayOfInsertedModels) {
                 console.time('save-plant-irradiance-to-db')
@@ -646,17 +622,16 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
               concurrency: 2
             })
             .then(values => {
-              console.timeEnd('save-inverter-power-to-db')
+              console.timeEnd('save-inverter-power-to-db') // Not seen
               console.log('From getValues() inner Promise.map(), outputing Array of ' +
                 'datapoints = ', values);
               // return values;
             }, function () {
               console.log('Inner Promise.map() failed in getValues')
             });
-        }
-        else if (optionalFacId && inverterOrPlant === 'staticInfo' &&
+        } else if (optionalFacId && inverterOrPlant === 'staticInfo' &&
           powerOrIrradiance === 'staticInfo') {
-            console.log(`From static method of getValues(), 'arrayOfTimeStamps[0]' = `, arrayOfTimeStamps[0])
+          console.log(`From static method of getValues(), 'arrayOfTimeStamps[0]' = `, arrayOfTimeStamps[0])
           let staticValsPlantInstance = new staticValsPlant({
             // FacilityId: '???,'
             FacilityName: variableObj.PlantName,
@@ -702,11 +677,11 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           throw new CustomErrorHandler({
             code: 111,
             message: `getValues() was not called with valid parameters so you didn't ` +
-            `hit one of the if else blocks`,
+              `hit one of the if else blocks`,
             // error: err
           });
         }
-        console.timeEnd('save-collection-to-db')
+        console.timeEnd('save-collection-to-db') // Not seen
 
       } catch (err) {
         if (err.name === 'MongoError' && err.code === 11000) {
@@ -717,11 +692,12 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
           })
         }
       }
-
+      console.timeEnd('time-1') // Is seen
     }, {
       concurrency: 2
     })
     .then(values => {
+      console.timeEnd('time-2') // Is seen
       // we're returning here just to keep the functionality of returning
       // everything back in the form of an arr which could later be acted on
       // (in this case it would be ingest that would be acting on it. ) if
@@ -736,9 +712,8 @@ async function getValues(inverterOrPlant, powerOrIrradiance, optionalFacId,
         error: JSON.stringify(err, null, 2)
       })
     });
-  // Take the second snapshot and compute the diff
-  // const diff = hd.end();
-  // console.log(`diff at end of 'getValues()' function = `, diff);
+  console.timeEnd('time-3'); // Not seen
+  console.timeEnd('time-4')
 }
 
 /** This gets the bearer string**
@@ -772,10 +747,10 @@ function CustomErrorHandler(someObject) {
   console.trace(someObject)
 }
 class CustomErrorHandlerEx extends Error {
-    constructor(...args) {
-        super(...args)
-        Error.captureStackTrace(this, CustomErrorHandlerEx)
-    }
+  constructor(...args) {
+    super(...args)
+    Error.captureStackTrace(this, CustomErrorHandlerEx)
+  }
 }
 /**
  * @param  {string} authString
@@ -808,12 +783,12 @@ let ingestThenAgr = async (startDate, endDate, facId) => {
     // TODO: Refactor to take the things in the beginning of ingest into its
     // own function which would just run once, right here.
     // Now these functions will just be called and save to db from 'ingest' directly
-    // const powerAtPlantLevel = await ingest('plant', 'power', facId, startDate, endDate, authString);
-    // const irradianceAtPlantLevel = await ingest('plant', 'irradiance', facId, startDate, endDate, authString);
-    // const powerAtInverterLevel = await ingest('inverter', 'power', facId, startDate, endDate, authString);
-    const powerAtPlantLevel = await ingest('staticInfo', 'staticInfo', facId, startDate, endDate, authString);
+    await ingest('staticInfo', 'staticInfo', facId, startDate, endDate)
+    await ingest('plant', 'power', facId, startDate, endDate);
+    await ingest('plant', 'irradiance', facId, startDate, endDate);
+    await ingest('inverter', 'power', facId, startDate, endDate)
 
-    await powerAtPlantLevel && console.log('is this loaded, then the ingestion script is done.')
+    // && console.log('is this loaded, then the ingestion script is done.');
     // TODO: query the permenant db, then save those user input static values
     // into this temp db which we well pass to gerardo's script next
 
@@ -863,7 +838,8 @@ var result = chunkArray([1, 2, 3, 4, 5, 6, 7, 8], 3);
 // Outputs : [ [1,2,3] , [4,5,6] ,[7,8] ]
 console.log(result);
 
-ingestThenAgr(1529452800, 1529539200, 6); // 1 día
+// ingestThenAgr(1529452800, 1529539200, 6); // 1 día
+ingestThenAgr(1526860800, 1529539200, 6); // 1 día
 // ingestThenAgr( 1513857600 , 1529539200, 6); // 6 meses
 // ingestThenAgr(1498046400, 1529539200, 6); // 1 año
 // ingestThenAgr(1434888000, 1529539200, 6); // 3 años

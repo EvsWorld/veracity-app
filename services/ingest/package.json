@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Make calls to gpm+ apis and save to db",
   "dependencies": {
+    "@types/es6-promise": "^3.3.0",
     "async": "^2.6.1",
     "await-to-js": "^2.0.1",
     "axios": "^0.18.0",
@@ -10,6 +11,7 @@
     "bunyan": "^1.8.12",
     "debug": "^3.1.0",
     "dotenv": "^6.0.0",
+    "eslint-config-prettier": "^3.0.1",
     "fs": "^0.0.1-security",
     "json-file": "^0.1.0",
     "jsonfile": "^4.0.0",
@@ -19,6 +21,7 @@
     "mongoose": "^5.2.9",
     "nodemon": "^1.18.3",
     "path": "^0.12.7",
+    "prettier-eslint": "^8.8.2",
     "query-string": "^6.1.0",
     "redis": "^2.8.0",
     "redis-rejson": "^1.0.0",

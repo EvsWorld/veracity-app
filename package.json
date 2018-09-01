@@ -1,5 +1,7 @@
 {
   "dependencies": {
-    "@types/es6-promise": "^3.3.0"
+    "@types/es6-promise": "^3.3.0",
+    "eslint-config-prettier": "^3.0.1",
+    "prettier-eslint": "^8.8.2"
   }
 }
