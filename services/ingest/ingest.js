@@ -838,8 +838,8 @@ var result = chunkArray([1, 2, 3, 4, 5, 6, 7, 8], 3);
 // Outputs : [ [1,2,3] , [4,5,6] ,[7,8] ]
 console.log(result);
 
-// ingestThenAgr(1529452800, 1529539200, 6); // 1 día
-ingestThenAgr(1526860800, 1529539200, 6); // 1 día
+ingestThenAgr(1529452800, 1529539200, 6); // 1 día
+// ingestThenAgr(1526860800, 1529539200, 6); // ???
 // ingestThenAgr( 1513857600 , 1529539200, 6); // 6 meses
 // ingestThenAgr(1498046400, 1529539200, 6); // 1 año
 // ingestThenAgr(1434888000, 1529539200, 6); // 3 años
