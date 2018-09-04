@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-
+// https://mongoosejs.com/docs/populate.html#deep-populate
+// https://stackoverflow.com/questions/7267102/how-do-i-update-upsert-a-document-in-mongoose?rq=1
+// https://stackoverflow.com/questions/29739040/mongoose-odm-findoneandupdate-sub-document
+// https://github.com/academind/node-restful-api-tutorial/tree/08-populate-orders-with-products/api
+// https://stackoverflow.com/questions/31357745/find-after-populate-mongoose
+// http://blog.ocliw.com/2012/11/25/mongoose-add-to-an-existing-array/
 const personSchema = new Schema({
   _id: Schema.Types.ObjectId,
   name: { type: String, default: '' },
@@ -82,14 +87,16 @@ app.post('/addFavorite', (req, res, next) => {
 });
 
 // This allows us to perform a find and populate combo:
-Person.
-  findOne({ name: 'Ian Fleming' }).
-  populate('stories'). // only works if we pushed refs to children
-  exec(function (err, person) {
-    if (err) return handleError(err);
-    console.log(person);
-  });
 
+app.get('/user', (req, res, next) => {
+  Person.
+    findOne({ userId: req.body.usrId }).
+    populate('favoriteFacilities'). // only works if we pushed refs to children
+    exec(function (err, person) {
+      if (err) return handleError(err);
+      console.log(person);
+    });
+});
 
 app.route('/api/person')
     .get(function (req, res, next) {
