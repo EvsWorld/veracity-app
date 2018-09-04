@@ -3,6 +3,16 @@
 // and requests the access token needed to perform requests.
 // -----------------------------------------------------------------------------
 
+
+
+/* connection to the database */
+require("./db1/db1");
+
+var ObjectId = require('mongodb').ObjectID;
+const facility = require("./db1/models/facility-model");
+const project = require("./db1/models/project-model");
+const user = require("./db1/models/user-model");
+const ReadPreference = require('mongodb').ReadPreference;
 /* Import our server setup code so that we can configure authentication on our 
 server instance. */
 const { app, readIndexFileAndSetState, start } = require('./server.js');
@@ -58,7 +68,12 @@ const cors = require('cors');
         next();
     }
   });
-  
+
+
+ 
+
+
+
   // TODO: put authorization code below in its own middleware
   // -----------------------------------------------------------------------------
   /* Set up our session manager that will use in-memory storage for sessions. 
@@ -581,20 +596,18 @@ app.get('/api1/allAssets', (req, res) => {
 });
 */
 
-//test route (without link to a database)
-app.get('/api1/allAssets', (req, res) => {
+// test route (without link to a database)
 
-  /*
-   Will also need favourite information from users profile
-  */
+/*
+app.get('/api1/allAssets', (req, res) => {
 
   var assets = fakeDb;
   var response = [];
 
   var favourites = fakeUserProfile[0].favourites;
 
-  assets.forEach(function(val, i){
-    /* Sort through all assets and return information needed */
+  assets.forEach(function (val, i){
+    
     var individualAsset = new Object();
     
     favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
@@ -620,49 +633,41 @@ app.get('/api1/allAssets', (req, res) => {
   res.json(response);
    
 });
-
-// route for favourites
-
-/*
-Info needed for favourites -
-
-tags from users profile (under favourites)
-plant id from users profile (favourites)
-
-
 */
 
-app.get('/api1/favourites', (req, res) => {
-
-  var assets = fakeDb;
-  var response = [];
-  var favourites = fakeUserProfile[0].favourites;
-
-  assets.forEach(function(val, i){
-    /* Sort through all assets and return information needed */
-    var individualAsset = new Object();
-    if(favourites.indexOf(val._id) != -1){
-      individualAsset._id = val._id
-      individualAsset.asset = val.asset
-      individualAsset.location = val.location
-      individualAsset.mountingSystem = val.mountingSystem
-      individualAsset.panelTech = val.panelTech
-      individualAsset.COD = val.COD
-      individualAsset.size = val.size
-      individualAsset.performanceScore = val.score[0].performanceScore
-      individualAsset.dataQualityScore = val.score[1].dataQualityScore
-      individualAsset.latitude = val.latitude
-      individualAsset.longitude = val.longitude
-      individualAsset.region = val.region
-      individualAsset.continent = val.continent
-
-      response.push(individualAsset);
-    }
-   
-  });
+app.get('/api1/allAssets', (req, res) => {
+  const docquery = facility.find({}).read(ReadPreference.NEAREST);
+  docquery
+    .exec()
+    .then(assets => {
       
-  res.json(response);
-   
+    var marketplaceAssetInfo = []
+      
+    assets.forEach(function (val, i){
+    
+    var individualAsset = new Object();
+    individualAsset.id = val.id
+    individualAsset.asset = val.asset
+    individualAsset.country = val.country
+    individualAsset.mountingSystem = val.mountingSystem
+    individualAsset.panelTech = val.panelTech
+    individualAsset.COD = val.COD
+    individualAsset.size = val.size
+    individualAsset.pic = val.pic
+    individualAsset.lat = val.lat
+    individualAsset.long = val.long
+    individualAsset.region = val.region
+
+    marketplaceAssetInfo.push(individualAsset);
+
+  });
+
+      res.json(marketplaceAssetInfo);
+    })
+    .catch(err => {
+      res.status(500).send(err);
+    });
+
 });
 
 // route for My Assets
@@ -949,17 +954,14 @@ app.get('/api1/ppaMarketplace', (req, res) => {
    Will also need favourite information from users profile
   */
 
+  /*
   var assets = fakeDb;
   var response = [];
 
   var favourites = fakeUserProfile[0].favourites;
 
   assets.forEach(function(val, i){
-    /* Sort through all assets and return information needed 
-    
-      Check this with ppa marketplace
-      make sure info for filters is returned.
-    */
+   
     var individualAsset = new Object();
     
     favourites.indexOf(val._id) != -1 ? individualAsset.favourite = true : individualAsset.favourite = false;
@@ -980,6 +982,83 @@ app.get('/api1/ppaMarketplace', (req, res) => {
   })
       
   res.json(response);
+*/
+
+
+  /*Reading all projects for ppa marketplace*/
+
+  const docquery = project.find({}).read(ReadPreference.NEAREST);
+  docquery
+    .exec()
+    .then(projects => {
+      
+    var projectsInfo = []
+      
+    projects.forEach(function (val, i){
+    
+    var individualAsset = new Object();
+    
+    
+    individualAsset.id = val.id
+    individualAsset.projectName = val.projectName
+    individualAsset.location = val.location
+    individualAsset.technology = val.technology
+    individualAsset.expectedProduction = val.expectedProduction
+    individualAsset.region = val.region
+    individualAsset.continent = val.continent
+    individualAsset.location = val.location
+    individualAsset.COD = val.COD
+    individualAsset.technology = val.technology
+    /*Favourite Info*/
+
+
+    projectsInfo.push(individualAsset);
+
+  });
+
+      res.json(projectsInfo);
+    })
+    .catch(err => {
+      res.status(500).send(err);
+    });
+   
+});
+
+/*
+Manage RFP route
+
+company
+size
+location
+technology
+issued
+due
+
+*/
+
+
+app.get('/api1/manageRfp', (req, res) => {
+
+  var assets = fakeDb;
+  var response = [];
+ 
+  assets.forEach(function(val, i){
+   
+    var individualAsset = new Object();
+      
+      individualAsset._id = val._id
+      individualAsset.company = val.company
+      individualAsset.location = val.location
+      individualAsset.location = val.technology
+      individualAsset.size = val.size
+      individualAsset.issued = val.issue
+      individualAsset.due = val.due
+      
+    response.push(individualAsset);
+  })
+      
+  res.json(response);
+   
    
 });
 
@@ -1173,44 +1252,9 @@ app.get('/api1/ppaAssetPage', (req, res) => {
   })
       
   res.json(response);
-   
-});
-
-/*
-Manage RFP route
-
-company
-size
-location
-technology
-issued
-due
-
-*/
 
 
-app.get('/api1/manageRfp', (req, res) => {
-
-  var assets = fakeDb;
-  var response = [];
- 
-  assets.forEach(function(val, i){
-   
-    var individualAsset = new Object();
-      
-      individualAsset._id = val._id
-      individualAsset.company = val.company
-      individualAsset.location = val.location
-      individualAsset.location = val.technology
-      individualAsset.size = val.size
-      individualAsset.issued = val.issue
-      individualAsset.due = val.due
-      
-    response.push(individualAsset);
-  })
-      
-  res.json(response);
-   
+  
 });
 
 /*
@@ -1309,9 +1353,10 @@ messages received?
 
 app.get('/api1/ppaMyProjects', (req, res) => {
 
-  var assets = fakeDb;
-  var response = [];
- 
+  //var assets = fakeDb;
+  //var response = [];
+
+ /*
   assets.forEach(function(val, i){
    
     var individualAsset = new Object();
@@ -1338,6 +1383,45 @@ app.get('/api1/ppaMyProjects', (req, res) => {
   })
       
   res.json(response);
+  */
+
+
+
+
+  /*
+  Need to check projects in current users profile
+  */
+  const docquery = facility.find({}).read(ReadPreference.NEAREST);
+  docquery
+    .exec()
+    .then(assets => {
+      
+    var myProjectsInfo = []
+      
+    assets.forEach(function (val, i){
+    
+    var individualAsset = new Object();
+    individualAsset.id = val.id
+    individualAsset.asset = val.asset
+    individualAsset.country = val.country
+    individualAsset.mountingSystem = val.mountingSystem
+    individualAsset.panelTech = val.panelTech
+    individualAsset.COD = val.COD
+    individualAsset.size = val.size
+    individualAsset.pic = val.pic
+    individualAsset.lat = val.lat
+    individualAsset.long = val.long
+    individualAsset.region = val.region
+
+    myProjectsInfo.push(individualAsset);
+
+  });
+
+      res.json(myProjectsInfo);
+    })
+    .catch(err => {
+      res.status(500).send(err);
+    });
    
 });
 
@@ -1393,15 +1477,86 @@ app.get('/api1/ppaActiveRfp', (req, res) => {
   %%%%%%%%%%%%%%%
 */
 
+
+
+
+/*Save an asset route*/
 app.post('/api1/saveAsset', (req, res) => {
 
   console.log("Save asset called!")
   //Asset info in req.body
   console.log(req.body)
-
-
+  
+  const facilityInstance = new facility (req.body );
+  facilityInstance.save(function(err){
+    if(err){ return handleError(err);}
+  });
    
 });
+
+
+
+/*Save a project route*/
+app.post('/api1/saveProject', (req, res) => {
+
+  console.log("Save Project called!")
+  //Asset info in req.body
+  console.log(req.body)
+  
+  const projectInstance = new project (req.body );
+  projectInstance.save(function(err){
+    if(err){ return handleError(err);}
+
+  });
+});
+
+
+
+/*Save a user profile object route*/
+app.post('/api1/saveUser', (req, res) => {
+
+  console.log("Save user called!")
+  //Asset info in req.body
+  console.log(req.body)
+  
+  const userInstance = new user (req.body);
+  userInstance.save(function(err){
+    if(err){ return handleError(err);}
+  });
+});
+
+
+
+/*Save a favourite to user profile*/
+app.post('/api1/saveFavourites', (req, res) => {
+
+  console.log("saveFavourites called!")
+  //Asset info in req.body
+  console.log(req.body)
+  
+  const favourite = req.body
+
+    user.update({_id: ObjectId("5b89264830b72f3d50519382")}, {$push:{favourites: favourite}}, function(err, result){
+      if (err) {
+          console.log('Error updating object: ' + err);
+          res.send({'error':'An error has occurred'});
+      } else {
+          console.log('' + result + ' document(s) updated');
+          res.send(user);
+      }
+  });
+
+});
+
+
+
+
+
+
+
+function handleError(someObject){
+  console.trace(someObject)
+}
 
 
 

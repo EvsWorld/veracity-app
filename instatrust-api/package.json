@@ -33,7 +33,6 @@
     "yeoman-test": "^1.7.0"
   },
   "dependencies": {
-    "express": "^4.16.3",
     "babel-eslint": "^8.2.5",
     "btoa": "^1.2.1",
     "chalk": "^2.1.0",
@@ -43,12 +42,14 @@
     "cors": "^2.8.4",
     "dotenv": "^6.0.0",
     "eslint": "^5.0.1",
+    "express": "^4.16.3",
     "express-session": "^1.15.6",
     "express-winston": "^2.0.0",
     "fs-extra": "^6.0.1",
     "nodemon": "1.12.6",
     "passport": "^0.4.0",
     "passport-azure-ad": "^3.0.12",
+    "path": "^0.12.7",
     "react-scripts": "^1.1.4",
     "request": "^2.87.0",
     "request-promise-native": "^1.0.5",
