@@ -96,38 +96,42 @@ db.once('open', async () => {
       city: String
     }
   }));
-  const family = new Family({
-    lastName: "Volum",
-    parents: [{
-        firstName: "Thomas"
-      },
-      {
-        firstName: "Mary Kay"
-      }
-    ],
-    children: [{
-        firstName: "Ryan",
-        gender: "male",
-        grade: 8
-      },
-      {
-        firstName: "Patrick",
-        gender: "male",
-        grade: 7
-      }
-    ],
-    pets: [{
-      givenName: "Blackie"
-    }],
-    address: {
-      country: "USA",
-      state: "WA",
-      city: "Seattle"
-    }
-  });
-  family.save((err, saveFamily) => {
-    console.log(JSON.stringify(saveFamily));
-  });
+  // const family = new Family({
+  //   lastName: "Volum",
+  //   parents: [{
+  //       firstName: "Thomas"
+  //     },
+  //     {
+  //       firstName: "Mary Kay"
+  //     }
+  //   ],
+  //   children: [{
+  //       firstName: "Ryan",
+  //       gender: "male",
+  //       grade: 8
+  //     },
+  //     {
+  //       firstName: "Patrick",
+  //       gender: "male",
+  //       grade: 7
+  //     }
+  //   ],
+  //   pets: [{
+  //     givenName: "Blackie"
+  //   }],
+  //   address: {
+  //     country: "USA",
+  //     state: "WA",
+  //     city: "Seattle"
+  //   }
+  // });
+
+  // family.save((err, saveFamily) => {
+  //   console.log(JSON.stringify(saveFamily));
+  // });
+
+  db.dropDatabase(); // drops database before starting to write again
+
 });
 
 // TODO: Should this schema be broken into multiple documents? (ie
