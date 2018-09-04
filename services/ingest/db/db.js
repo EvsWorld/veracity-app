@@ -19,7 +19,7 @@ const dbName = 'instatrust-temp';
 const dbConnectionString = `${baseDbConnectionString}/${dbName}?ssl=true&replicaSet=globaldb`;
 
 // works w mlab
-const mongooseOptions1 = {
+const mongooseOptionsMlab = {
   socketTimeoutMS: 100000,
   keepAlive: true,
   reconnectTries: 100000,
@@ -37,7 +37,8 @@ const mongooseOptions2 = {
   useNewUrlParser: true
 };
 
-const mongooseOptions3 = {
+// works w Cosmosdb
+const mongooseOptionsCosmos = {
   // useNewUrlParser: true,
   auto_reconnect: true,
   connectTimeoutMS: 3600000,
@@ -49,15 +50,13 @@ const mongooseOptions3 = {
 // .createConnection() returns a Connection instance
 // .connect() returns the global mongoose instance
 
-// const db = mongoose.createConnection(`${baseDbConnectionString}/${dbName}?ssl=true&replicaSet=globaldb`, mongooseOptions1);
-
-// const Schema = mongoose.Schema;
+// const db = mongoose.createConnection(dbConnectionString, mongooseOptionsCosmos);
 
 // opens connection to mongodb
-mongoose.connect(dbConnectionString, mongooseOptions3);
+mongoose.connect(dbConnectionString, mongooseOptionsCosmos);
 const db = mongoose.connection;
 
-console.log('our connection string is...', `${dbConnectionString}/${dbName}?ssl=true&replicaSet=globaldb`)
+console.log('our connection string is...', dbConnectionString)
 
 db.on('error', console.error.bind(console, 'connection error:'));
 db.on('error', function (err) {
