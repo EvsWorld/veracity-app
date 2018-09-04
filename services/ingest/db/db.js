@@ -1,10 +1,10 @@
 'use strict';
 
 const path = require('path'); // Used to resolve paths properly.
-require('dotenv').config({
-  path: path.resolve(__dirname, '../../.env')
-});
-
+// require('dotenv').config({
+//   path: path.resolve(__dirname, '../../.env')
+// });
+var env = require('dotenv').load();
 
 const mongoose = require('mongoose');
 mongoose.Promise = require('bluebird');
@@ -60,15 +60,15 @@ const db = mongoose.connection;
 console.log('our connection string is...', `${dbConnectionString}/${dbName}?ssl=true&replicaSet=globaldb`)
 
 db.on('error', console.error.bind(console, 'connection error:'));
-// db.on('error', function (err) {
-//   console.log("DB connection Error: " + err);
-// });
-// db.on('open', function () {
-//   console.log("DB connected");
-// });
-// db.on('close', function (str) {
-//   console.log("DB disconnected: " + str);
-// });
+db.on('error', function (err) {
+  console.log("DB connection Error: " + err);
+});
+db.on('open', function () {
+  console.log("DB connected");
+});
+db.on('close', function (str) {
+  console.log("DB disconnected: " + str);
+});
 
 db.once('open', async () => {
   // were connected???  do things here??
