@@ -15,8 +15,8 @@ const projectSchema = new Schema(
     companyName: String,
     projectName: String,
     operator: String,
-    latitude: String,
-    longitude: String,
+    latitude: Number,
+    longitude: Number,
     location: String,
     region: String,
     timeZone: String,
@@ -59,7 +59,8 @@ const projectSchema = new Schema(
     cellModuleManufacturer: String,
     cellModuleModel: String,
     storageCertification: String,
-    
+
+    email: String
 
 },
   { autoIndex: false }

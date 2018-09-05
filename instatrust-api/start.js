@@ -12,6 +12,10 @@ var ObjectId = require('mongodb').ObjectID;
 const facility = require("./db1/models/facility-model");
 const project = require("./db1/models/project-model");
 const user = require("./db1/models/user-model");
+const mongoose = require('mongoose');
+
+//const User = require('./db/models/user');
+
 const ReadPreference = require('mongodb').ReadPreference;
 /* Import our server setup code so that we can configure authentication on our 
 server instance. */
@@ -132,7 +136,10 @@ passport.use('azuread-openidconnect', authenticationStrategy);
 Here we store the entire user object we define in the 'verifier' function.
 You can pick only parts of it if you don't need all the information or if you 
 have user information stored somewhere else. */
-const User = require('./db/models/user');
+
+
+
+
 
 passport.serializeUser((user, done) => {
   console.log('=== serialize ... called ===');
@@ -753,7 +760,7 @@ app.post('/api1/addAssetPage', (req, res) => {
   var response = [];
 
   console.log("AddassetPage Called!")
-  //Asset info in req.body
+  // Asset info in req.body
   console.log(req.body.id)
   var id = req.body.id
   
@@ -1351,77 +1358,50 @@ messages received?
 */
 
 
-app.get('/api1/ppaMyProjects', (req, res) => {
+app.post('/api1/ppaMyProjects', (req, res) => {
 
-  //var assets = fakeDb;
-  //var response = [];
+  
+  const email = req.body.email
 
- /*
-  assets.forEach(function(val, i){
+  /*the above email should come from user object Veracity*/
+
+
+  user.findOne({email: email})
+  .populate('activeProjects'). 
+  exec(function (err, projects) {
+    if (err) return handleError(err);
+    console.log("projects returned" + projects.activeProjects);
+
+    var projectsToReturn = [];
+    if(projects.activeProjects){
+
+      projects.activeProjects.map(function(val, i){
+
+        var myProjects = new Object();
+  
+        myProjects._id = val.id
+        myProjects.projectName = val.projectName
+        myProjects.size = val.size
+        myProjects.location = val.location
+        myProjects.technology = val.technology
+        myProjects.COD = val.COD
+        //myProjects.score = val.score
+        myProjects.expectedProduction = val.expectedProduction
+        myProjects.region = val.region
+        myProjects.continent = val.continent
+      
+        projectsToReturn.push(myProjects)
+      })
+    }
    
-    var individualAsset = new Object();
-      
-      individualAsset._id = val._id
-      individualAsset.project = val.project
-      individualAsset.size = val.size
-      individualAsset.location = val.location
-      individualAsset.location = val.technology
-      individualAsset.cod = val.COD
-      individualAsset.score = val.score
+    console.log("projects array built")
+    console.log(projectsToReturn)
 
-      individualAsset.visible = val.visible
-      individualAsset.expectedProduction = val.expectedProduction
-
-      individualAsset.region = val.region
-      individualAsset.country = val.country
-      individualAsset.continent = val.continent
-      individualAsset.typeOfEnergy = val.typeOfEnergy
-      individualAsset.operationDate = val.operationDate
-      individualAsset.messagesReceived = val.messagesReceived
-
-    response.push(individualAsset);
+    res.json(projectsToReturn);
   })
-      
-  res.json(response);
-  */
-
-
-
-
-  /*
-  Need to check projects in current users profile
-  */
-  const docquery = facility.find({}).read(ReadPreference.NEAREST);
-  docquery
-    .exec()
-    .then(assets => {
-      
-    var myProjectsInfo = []
-      
-    assets.forEach(function (val, i){
-    
-    var individualAsset = new Object();
-    individualAsset.id = val.id
-    individualAsset.asset = val.asset
-    individualAsset.country = val.country
-    individualAsset.mountingSystem = val.mountingSystem
-    individualAsset.panelTech = val.panelTech
-    individualAsset.COD = val.COD
-    individualAsset.size = val.size
-    individualAsset.pic = val.pic
-    individualAsset.lat = val.lat
-    individualAsset.long = val.long
-    individualAsset.region = val.region
-
-    myProjectsInfo.push(individualAsset);
-
+  .catch(err => {
+    res.status(500).send(err);
   });
-
-      res.json(myProjectsInfo);
-    })
-    .catch(err => {
-      res.status(500).send(err);
-    });
    
 });
 
@@ -1491,7 +1471,7 @@ app.post('/api1/saveAsset', (req, res) => {
   facilityInstance.save(function(err){
     if(err){ return handleError(err);}
   });
-   
+
 });
 
 
@@ -1502,13 +1482,34 @@ app.post('/api1/saveProject', (req, res) => {
   console.log("Save Project called!")
   //Asset info in req.body
   console.log(req.body)
-  
-  const projectInstance = new project (req.body );
-  projectInstance.save(function(err){
-    if(err){ return handleError(err);}
 
-  });
+  const email = req.body.email;
+  console.log("email address below")
+  console.log(req.body.email)
+ 
+  //const projectInstance = new project (req.body);
+
+  //const createProject = project.create(req.body);
+    const createProject = new project(req.body);
+    
+  
+    createProject.save(function(err,project) {
+        console.log("logging id")
+        console.log(project._id)
+
+        user.findOneAndUpdate({email: email}, {$push:{activeProjects: project._id}}, function(err, result){
+          if (err) {
+              console.log('Error updating User profile with new project: ' + err);
+              res.send({'error':'An error has occurred'});
+          } else {
+              console.log('' + result + ' document(s) updated');
+              res.send(user);
+          }
+      });
+   });
 });
+
+
 
 
 
@@ -1523,6 +1524,7 @@ app.post('/api1/saveUser', (req, res) => {
   userInstance.save(function(err){
     if(err){ return handleError(err);}
   });
+
 });
 
 
@@ -1535,8 +1537,10 @@ app.post('/api1/saveFavourites', (req, res) => {
   console.log(req.body)
   
   const favourite = req.body
+ // _id: ObjectId("5b89264830b72f3d50519382")
+ //check _id of user
 
-    user.update({_id: ObjectId("5b89264830b72f3d50519382")}, {$push:{favourites: favourite}}, function(err, result){
+    user.update({email: email}, {$push:{favourites: favourite}}, function(err, result){
       if (err) {
           console.log('Error updating object: ' + err);
           res.send({'error':'An error has occurred'});
